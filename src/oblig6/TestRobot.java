@@ -2,7 +2,6 @@ package oblig6;
 import oblig6.vector.Vector;
 import robocode.AdvancedRobot;
 import robocode.*;
-import robocode.control.snapshot.BulletState;
 
 public class TestRobot extends AdvancedRobot {
 
@@ -28,26 +27,25 @@ public class TestRobot extends AdvancedRobot {
 
     private void getEnemyPosition( ScannedRobotEvent e ){
 
-        /* Coordinates of enemy */
+        /* Calculate the angle to find the enemy coordinates from */
         double angle =  Math.toRadians((getHeading() + e.getBearing()) % 360);
+
+        /* Calculate the enemy coordinates */
         enemy_x = (int)(getX() + Math.sin(angle) * e.getDistance());
         enemy_y = (int)(getY() + Math.cos(angle) * e.getDistance());
 
-        /* Delta coordinates of enemy */
+        /* Calculate the angle to find the enemy delta from */
         double lead_angle = Math.toRadians( e.getHeading() );
+
+        /* Calculate the enemy delta coordinates */
         enemy_dx = (Math.sin(lead_angle) * e.getVelocity());
         enemy_dy = (Math.cos(lead_angle) * e.getVelocity());
+
         enemy_delta = new Vector(enemy_x, enemy_dy);
 
         /* Calculate factor to lead the shots with */
+        //TODO: Figure out how to calculate the lead factor properly.
         lead_factor =  (20-(3*firepower)) /  e.getDistance();
-
-        double lead_x = (int)( lead_factor * enemy_dx );
-        double lead_y = (int)( lead_factor * enemy_dy );
-        System.out.println("Current");
-        System.out.println(enemy_x + " : " + enemy_y );
-        System.out.println("expecting:");
-        System.out.println(lead_x + " : " + lead_y );
 
     }
 }
