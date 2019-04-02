@@ -25,7 +25,6 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void run() {
         setAdjustRadarForRobotTurn( true );
-        setAdjustRadarForGunTurn  ( true );
         setAdjustGunForRobotTurn  ( true );
         turnRadarRightRadians( Double.POSITIVE_INFINITY );
     }
@@ -59,7 +58,11 @@ public class ChampignonRobot extends AdvancedRobot {
         //if gun is locked on the predicted position, shoot
     }
     private void lockOn(ScannedRobotEvent e){
-        //adjust radar to keep pointing to enemy
+        double absoluteBearing = e.getBearingRadians() + getHeadingRadians();
+        System.out.println(absoluteBearing);
+        setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+        double gunTurnAmount = robocode.util.Utils.normalRelativeAngle( absoluteBearing - getGunHeadingRadians() );
+        setTurnGunRightRadians(gunTurnAmount);
     }
 
     @Override
