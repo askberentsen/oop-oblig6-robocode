@@ -24,6 +24,10 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void run() {
+        setAdjustRadarForRobotTurn( true );
+        setAdjustRadarForGunTurn  ( true );
+        setAdjustGunForRobotTurn  ( true );
+        turnRadarRightRadians( Double.POSITIVE_INFINITY );
     }
 
     private void targetRobot(ScannedRobotEvent e){
