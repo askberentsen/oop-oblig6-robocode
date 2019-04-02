@@ -30,7 +30,11 @@ public class ChampignonRobot extends AdvancedRobot {
         turnRadarRightRadians( Double.POSITIVE_INFINITY );
     }
 
-    private void targetRobot(ScannedRobotEvent e){
+    /**
+     * Calculates the coordinates and movement of an enemy robot.
+     * @param e the robot that was scanned.
+     */
+    private void targetRobot( ScannedRobotEvent e ) {
         //TODO: Calculate the values of the target
 
         /* Calculate the absolute bearing of the target. */
