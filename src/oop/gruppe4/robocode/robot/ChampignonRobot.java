@@ -15,6 +15,10 @@ import robocode.ScannedRobotEvent;
  */
 public class ChampignonRobot extends AdvancedRobot {
 
+    private int targetX, targetY;
+    private double targetDX, targetDY;
+    private double leadingFactor;
+
     /**
      * Main method of this {@code ChampignonRobot}.
      */
@@ -22,12 +26,24 @@ public class ChampignonRobot extends AdvancedRobot {
     public void run() {
     }
 
-    /**
-     * TODO 02/04/2019
-     * @param e
-     * @return
-     */
-    private double targetRobot(ScannedRobotEvent e){
-        return 0;
+    private void targetRobot(ScannedRobotEvent e){
+        //Calculate the values of the target
+        //Calculate coordinates
+        //Calculate delta
+        //Calculate the scalar to use when leading the shot
+    }
+    private void aim(ScannedRobotEvent e){
+        //Aim to enemy, lead the shot.
+        //if gun is locked on the predicted position, shoot
+    }
+    private void lockOn(ScannedRobotEvent e){
+        //adjust radar to keep pointing to enemy
+    }
+
+    @Override
+    public void onScannedRobot( ScannedRobotEvent e ) {
+        targetRobot(e); //targets the robot coordinates and vector of enemy
+        lockOn(e);
+        aim(e);
     }
 }
