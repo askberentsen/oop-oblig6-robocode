@@ -1,2 +1,4 @@
 
 *.xml
+src/oblig6/*
+out/*
