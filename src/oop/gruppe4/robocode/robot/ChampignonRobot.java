@@ -44,6 +44,7 @@ public class ChampignonRobot extends AdvancedRobot {
         targetDY = ( Math.cos( angle ) * e.getVelocity() );
 
         //TODO: Calculate the scalar to use when leading the shot
+        leadingFactor = 1 + ( e.getDistance() / 100 ); //TMP value
     }
     private void aim(ScannedRobotEvent e){
         //Aim to enemy, lead the shot.
