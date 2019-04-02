@@ -6,7 +6,7 @@ import robocode.ScannedRobotEvent;
 /*
  * TODO: 02/04/2019 | ALL
  * TODO: Implement
- *
+ * TODO: Add Yeet function
  */
 
 /**
