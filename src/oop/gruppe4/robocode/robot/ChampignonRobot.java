@@ -27,13 +27,23 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     private void targetRobot(ScannedRobotEvent e){
-        //Calculate the values of the target
-        //Calculate coordinates
+        //TODO: Calculate the values of the target
+
+        /* Calculate the absolute bearing of the target. */
         double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
+
+        /* Calculate the coordinates. */
         targetX = (int)( getX() + Math.sin( absoluteBearing ) * e.getDistance() );
         targetY = (int)( getY() + Math.cos( absoluteBearing ) * e.getDistance() );
-        //Calculate delta
-        //Calculate the scalar to use when leading the shot
+
+        /* Calculate the absolute angle the enemy is moving towards. */
+        double angle = e.getHeadingRadians();
+
+        /* Calculate the relative later coordinates */
+        targetDX = ( Math.sin( angle ) * e.getVelocity() );
+        targetDY = ( Math.cos( angle ) * e.getVelocity() );
+
+        //TODO: Calculate the scalar to use when leading the shot
     }
     private void aim(ScannedRobotEvent e){
         //Aim to enemy, lead the shot.
