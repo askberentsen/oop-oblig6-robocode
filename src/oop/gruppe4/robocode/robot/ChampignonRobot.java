@@ -57,9 +57,15 @@ public class ChampignonRobot extends AdvancedRobot {
         //Aim to enemy, lead the shot.
         //if gun is locked on the predicted position, shoot
     }
-    private void lockOn(ScannedRobotEvent e){
+
+    /**
+     * Locks gun on enemy current position.
+     * Naive method.
+     * TODO: Use absolute data instead of relative data. Base aiming on coordinates (#targetRobot()).
+     * @param e a scanned robot.
+     */
+    private void lockOn( ScannedRobotEvent e ){
         double absoluteBearing = e.getBearingRadians() + getHeadingRadians();
-        System.out.println(absoluteBearing);
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
         double gunTurnAmount = robocode.util.Utils.normalRelativeAngle( absoluteBearing - getGunHeadingRadians() );
         setTurnGunRightRadians(gunTurnAmount);
