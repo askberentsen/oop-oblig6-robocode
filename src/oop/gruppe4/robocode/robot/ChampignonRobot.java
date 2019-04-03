@@ -54,9 +54,13 @@ public class ChampignonRobot extends AdvancedRobot {
         //TODO: Calculate the scalar to use when leading the shot
         leadingFactor = 1 + ( e.getDistance() / 100 ); //TMP value
     }
-    private void aim(ScannedRobotEvent e){
-        //Aim to enemy, lead the shot.
-        //if gun is locked on the predicted position, shoot
+
+    private void aimGun(double target ){
+
+        double current = getGunHeadingRadians();
+        double diff = Utility.signedAngleDifference( current, target );
+
+        setTurnGunRightRadians(diff);
     }
 
     /**
