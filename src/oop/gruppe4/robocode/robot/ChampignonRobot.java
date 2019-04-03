@@ -2,6 +2,7 @@ package oop.gruppe4.robocode.robot;
 
 import oop.gruppe4.robocode.utility.Utility;
 import robocode.AdvancedRobot;
+import robocode.HitWallEvent;
 import robocode.ScannedRobotEvent;
 
 /*
@@ -20,6 +21,7 @@ public class ChampignonRobot extends AdvancedRobot {
     private double targetDX, targetDY;
 
     private double leadingFactor = 23;
+    private int accuracy = 4;
 
     /**
      * Main method of this {@code ChampignonRobot}.
@@ -82,7 +84,19 @@ public class ChampignonRobot extends AdvancedRobot {
 
         /* Take aim */
         aimGun( angle );
+
+        /* Shoot */
+        if( Utility.signedAngleDifference(getGunHeadingRadians(), angle) < 0.05 ){
+            System.out.println("Within 0.5% of target");
+        }
         if( getGunTurnRemaining() < accuracy && getGunHeat() == 0) setFire(3);
+
+        //TODO: Make movement logic. This movement is dummy behaviour.
+        setAhead(6000 * moveDirection);
+    }
+    private int moveDirection = 1;
+    public void onHitWall(HitWallEvent e){
+        moveDirection=-moveDirection;//reverse direction upon hitting a wall
     }
 
     @Override
