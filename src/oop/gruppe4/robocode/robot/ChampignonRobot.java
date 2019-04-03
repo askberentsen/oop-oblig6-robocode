@@ -89,6 +89,7 @@ public class ChampignonRobot extends AdvancedRobot {
 
         /* Take aim */
         aimGun( angle );
+        if( getGunTurnRemaining() < accuracy && getGunHeat() == 0) setFire(3);
     }
 
     @Override
