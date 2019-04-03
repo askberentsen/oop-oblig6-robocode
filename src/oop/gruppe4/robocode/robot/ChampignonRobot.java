@@ -41,8 +41,8 @@ public class ChampignonRobot extends AdvancedRobot {
         double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
 
         /* Calculate the coordinates. */
-        targetX = (int)( getX() + Math.sin( absoluteBearing ) * e.getDistance() );
-        targetY = (int)( getY() + Math.cos( absoluteBearing ) * e.getDistance() );
+        targetX = (int)( Math.sin( absoluteBearing ) * e.getDistance() );
+        targetY = (int)( Math.cos( absoluteBearing ) * e.getDistance() );
 
         /* Calculate the absolute angle the enemy is moving towards. */
         double angle = e.getHeadingRadians();
