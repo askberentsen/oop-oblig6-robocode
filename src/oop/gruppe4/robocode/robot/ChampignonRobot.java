@@ -17,7 +17,8 @@ public class ChampignonRobot extends AdvancedRobot {
 
     private int targetX, targetY;
     private double targetDX, targetDY;
-    private double leadingFactor;
+
+    private double leadingFactor = 23;
 
     /**
      * Main method of this {@code ChampignonRobot}.
@@ -50,9 +51,6 @@ public class ChampignonRobot extends AdvancedRobot {
         /* Calculate the relative later coordinates */
         targetDX = ( Math.sin( angle ) * e.getVelocity() );
         targetDY = ( Math.cos( angle ) * e.getVelocity() );
-
-        //TODO: Calculate the scalar to use when leading the shot
-        leadingFactor = 1 + ( e.getDistance() / 100 ); //TMP value
     }
 
     private void aimGun(double target ){
