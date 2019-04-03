@@ -1,5 +1,6 @@
 package oop.gruppe4.robocode.robot;
 
+import oop.gruppe4.robocode.utility.Utility;
 import robocode.AdvancedRobot;
 import robocode.ScannedRobotEvent;
 
