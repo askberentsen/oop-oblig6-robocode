@@ -75,6 +75,9 @@ public class ChampignonRobot extends AdvancedRobot {
         //TODO: Get absolute angle to enemy position.
         //TODO: Get absolute angle to predicted enemy position.
         //TODO: Rotate gun to this absolute angle.
+        /* Predict the position of the target */
+        int predictedTargetX = (targetX) + (int)(targetDX * (e.getDistance() / leadingFactor));
+        int predictedTargetY = (targetY) + (int)(targetDY * (e.getDistance() / leadingFactor));
 
         /* Code from SuperTracker.java */
         /*double absoluteBearing = e.getBearingRadians() + getHeadingRadians();
