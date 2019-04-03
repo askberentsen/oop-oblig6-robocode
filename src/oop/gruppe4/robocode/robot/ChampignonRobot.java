@@ -84,6 +84,11 @@ public class ChampignonRobot extends AdvancedRobot {
         double gunTurnAmount = robocode.util.Utils.normalRelativeAngle( absoluteBearing - getGunHeadingRadians() );
         setTurnGunRightRadians(gunTurnAmount);
         setFire(3);*/
+        /* Calculate the angle to the target */
+        double angle = (Math.atan2( predictedTargetX, predictedTargetY ) + (2*Math.PI)) % (2*Math.PI);
+
+        /* Take aim */
+        aimGun( angle );
     }
 
     @Override
