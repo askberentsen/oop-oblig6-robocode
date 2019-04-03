@@ -72,18 +72,10 @@ public class ChampignonRobot extends AdvancedRobot {
         /* Lock-on radar */
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
 
-        //TODO: Get absolute angle to enemy position.
-        //TODO: Get absolute angle to predicted enemy position.
-        //TODO: Rotate gun to this absolute angle.
         /* Predict the position of the target */
         int predictedTargetX = (targetX) + (int)(targetDX * (e.getDistance() / leadingFactor));
         int predictedTargetY = (targetY) + (int)(targetDY * (e.getDistance() / leadingFactor));
 
-        /* Code from SuperTracker.java */
-        /*double absoluteBearing = e.getBearingRadians() + getHeadingRadians();
-        double gunTurnAmount = robocode.util.Utils.normalRelativeAngle( absoluteBearing - getGunHeadingRadians() );
-        setTurnGunRightRadians(gunTurnAmount);
-        setFire(3);*/
         /* Calculate the angle to the target */
         double angle = (Math.atan2( predictedTargetX, predictedTargetY ) + (2*Math.PI)) % (2*Math.PI);
 
@@ -96,6 +88,5 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onScannedRobot( ScannedRobotEvent e ) {
         targetRobot(e); //targets the robot coordinates and vector of enemy
         lockOn(e);
-        aim(e);
     }
 }
