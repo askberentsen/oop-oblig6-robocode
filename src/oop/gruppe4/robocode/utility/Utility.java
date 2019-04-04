@@ -25,4 +25,15 @@ public final class Utility {
         /* Return the (signed) smallest difference between alpha and beta */
         return  clockwiseDifference < counterClockwiseDifference ? clockwiseDifference : -counterClockwiseDifference;
     }
+
+    /**
+     * Limits a number between a lower and upper bound.
+     * @param value the value to limit.
+     * @param min the lower bound.
+     * @param max the upper bound
+     * @return the constrained value.
+     */
+    public static double limit( double value, double min, double max ){
+        return Math.max( min, Math.min(value, max) );
+    }
 }
