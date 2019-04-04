@@ -1,12 +1,28 @@
 package oop.gruppe4.robocode.utility;
 
+/**
+ * Utility functions not directly tied to robots, but heavily used by robots.
+ * @author Ask Hetland Berentsen
+ */
 public final class Utility {
-    public static double signedAngleDifference( double alpha, double beta ){
-        double naiveDifference = (alpha - beta) + Math.PI;
-        double phi = Math.abs( naiveDifference ) % ( 2 * Math.PI );
-        double distance = phi > Math.PI ? Math.PI - phi : phi - Math.PI;
 
-        //TODO: 03/04/2019 These values are not consistent enough - Ask H. B.
-        return alpha - beta >= 0 ? distance : -distance;
+    /**
+     * Calculates the signed smallest angle difference between two angles.
+     * This method calculates the relative angle between two angles, using {@code alpha} as the frame of reference.
+     * @param alpha the angle to base the calculation on
+     * @param beta the angle to calculate the radial distance of.
+     * @return A signed radian between {@code 0} and {@code PI} if the shortest radial path between
+     *         {@code alpha} and {@code beta} is in the clockwise direction, or a signed radian between
+     *         {@code -0} and {@code -PI} if the shortest radial path is in the counterclockwise direction.
+     */
+    public static double signedAngleDifference( double alpha, double beta ){
+
+        /* Find the normal angles between alpha and beta,
+           both in the clockwise direction and in the counterclockwise direction */
+        double clockwiseDifference        = robocode.util.Utils.normalAbsoluteAngle( beta  - alpha );
+        double counterClockwiseDifference = robocode.util.Utils.normalAbsoluteAngle( alpha - beta  );
+
+        /* Return the (signed) smallest difference between alpha and beta */
+        return  clockwiseDifference < counterClockwiseDifference ? clockwiseDifference : -counterClockwiseDifference;
     }
 }
