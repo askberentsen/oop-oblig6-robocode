@@ -21,9 +21,11 @@ public class ChampignonRobot extends AdvancedRobot {
 
     private Transform targetTransform;
     private int accuracy = 4;
+    private int moveDirection = 1;
 
     /**
-     * Main method of this {@code ChampignonRobot}.
+     * Main method of {@code this}.
+     * Initializes {@code this}.
      */
     @Override
     public void run() {
@@ -38,11 +40,11 @@ public class ChampignonRobot extends AdvancedRobot {
      * @param e the robot that was scanned.
      */
     private void targetRobot( ScannedRobotEvent e ) {
-        //TODO: Calculate the values of the target
 
         /* Calculate the absolute bearing of the target. */
         final double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
 
+        /* Calculate the transform of the target. */
         targetTransform = new Transform(
                 ( Math.sin( absoluteBearing ) * e.getDistance() ),
                 ( Math.cos( absoluteBearing ) * e.getDistance() ),
@@ -58,15 +60,16 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void aimGun( Vector2 target ){
 
+        /* Calculate the shortest arc between the gun heading and the target */
         final double shortestArc = Utility.signedAngleDifference( getGunHeadingRadians(), target.getTheta() );
 
+        /* Turn the gun with this difference. */
         setTurnGunRightRadians( shortestArc );
     }
 
     /**
      * Locks gun on enemy current position.
      * Naive method.
-     * TODO: Use absolute data instead of relative data. Base aiming on coordinates (#targetRobot()).
      * @param e a scanned robot.
      */
     private void lockOn( ScannedRobotEvent e ){
@@ -92,7 +95,6 @@ public class ChampignonRobot extends AdvancedRobot {
         //TODO: Make movement logic. This movement is dummy behaviour.
         setAhead(6000 * moveDirection);
     }
-    private int moveDirection = 1;
     public void onHitWall(HitWallEvent e){
         moveDirection=-moveDirection;//reverse direction upon hitting a wall
     }
@@ -106,6 +108,10 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * Finds the intercept coordinates of a target.
      * Uses lookahead to converge on a position where the bullet will hit the target.
+     * This method takes origo as its reference point, in order to generalize this method
+     * to use other reference points, transform all the relevant vectors such that the reference
+     * point becomes {@code (0,0)}.
+     * Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
      * @param coordinates the initial coordinates of a target.
      * @param trajectory the trajectory of a target.
      * @return the coordinate to intercept.
@@ -136,6 +142,10 @@ public class ChampignonRobot extends AdvancedRobot {
         return nextPosition;
     }
 
+    /**
+     * Gets the coordinates of {@code this} robot as a {@code Vector2}.
+     * @return the coordinates of {@code this}.
+     */
     private Vector2 getPosition(){
         return new Vector2( getX(), getY() );
     }
