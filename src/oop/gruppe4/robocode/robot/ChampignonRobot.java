@@ -56,7 +56,13 @@ public class ChampignonRobot extends AdvancedRobot {
         targetDY = ( Math.cos( angle ) * e.getVelocity() );
     }
 
-    private void aimGun(double target ){
+    /**
+     * Aims the gun at a relative coordinate.
+     * @param x the relative x coordinate of the target point.
+     * @param y the relative y coordinate of the target point.
+     */
+    private void aimGun( double x, double y ){
+        double target = (Math.atan2( x, y ) + ( 2*Math.PI )) % ( 2*Math.PI );
 
         double current = getGunHeadingRadians();
         double diff = Utility.signedAngleDifference( current, target );
@@ -82,9 +88,12 @@ public class ChampignonRobot extends AdvancedRobot {
         /* Calculate the angle to the target */
         double angle = (Math.atan2( predictedTargetX, predictedTargetY ) + (2*Math.PI)) % (2*Math.PI);
 
-        /* Take aim */
-        aimGun( angle );
+        final double distanceFactor = 22;
+        double predictedTargetX = target.getPosition().getX() + target.getTrajectory().getX() * target.getVelocity() * leadingFactor * ( e.getDistance() / distanceFactor);
+        double predictedTargetY = target.getPosition().getY() + target.getTrajectory().getY() * target.getVelocity() * leadingFactor * ( e.getDistance() / distanceFactor);
 
+        /* Take aim */
+        aimGun( predictedTargetX, predictedTargetY );
         /* Shoot */
         if( Utility.signedAngleDifference(getGunHeadingRadians(), angle) < 0.05 ){
             System.out.println("Within 0.5% of target");
