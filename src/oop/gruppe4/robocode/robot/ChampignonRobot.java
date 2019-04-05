@@ -104,15 +104,33 @@ public class ChampignonRobot extends AdvancedRobot {
         lockOn(e);
     }
 
+    /**
+     * Finds the intercept coordinates of a target.
+     * Uses lookahead to converge on a position where the bullet will hit the target.
+     * @param coordinates the initial coordinates of a target.
+     * @param trajectory the trajectory of a target.
+     * @return the coordinate to intercept.
+     */
     private Vector2 intercept(Vector2 coordinates, Vector2 trajectory){
+
+        /* The velocity of a bullet */
         final double bulletVelocity = 11;
+
+        /* The amount of steps before the intercept. */
         double steps = 1;
         double previousSteps = 0;
+
+        /* The lookahead position of the target. */
         Vector2 nextPosition = coordinates.add(trajectory);
-        boolean condition = true;
+
+        /* Iterate until the difference between the steps is less than 0.5 */
         while( (steps-previousSteps) > 0.5 ){
             previousSteps = steps;
+            /* Set the amount of steps to check to the distance to the next
+               position divided by the bullet velocity */
             steps = nextPosition.getScalar() / bulletVelocity;
+
+            /* Set the next position to coordinates + trajectory*steps. */
             nextPosition = coordinates.add(  trajectory.multiply(steps) );
         }
 
