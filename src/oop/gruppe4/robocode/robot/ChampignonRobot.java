@@ -72,7 +72,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * Naive method.
      * @param e a scanned robot.
      */
-    private void lockOn( ScannedRobotEvent e ){
+    private void lockOn( ScannedRobotEvent e ) {
 
         /* Lock-on radar */
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
@@ -82,13 +82,17 @@ public class ChampignonRobot extends AdvancedRobot {
                 targetTransform.getTrajectory().multiply(targetTransform.getVelocity())
         );
 
-        Vector2 restrainedPredictedPosition = new Vector2(
+        /* Restrain predictedPosition such that it is bounded by the battlefield. */
+        Vector2 restrainedPredictedAbsolutePosition = new Vector2(
                 Utility.limit( predictedPosition.getX() + getX(), getWidth(), getBattleFieldWidth()  - getWidth()  ),
                 Utility.limit( predictedPosition.getY() + getY(), getHeight(),getBattleFieldHeight() - getHeight() )
         );
-        predictedPosition = restrainedPredictedPosition.subtract( getPosition() );
+
+        /* Reset the reference frame to this. */
+        Vector2 restrainedPredictedRelativePosition = restrainedPredictedAbsolutePosition.subtract( getPosition() );
+        
         /* Take aim */
-        aimGun( predictedPosition );
+        aimGun( restrainedPredictedRelativePosition );
 
         if( getGunTurnRemaining() < accuracy && getGunHeat() == 0) setFire(3);
 
@@ -116,7 +120,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @param trajectory the trajectory of a target.
      * @return the coordinate to intercept.
      */
-    private Vector2 intercept(Vector2 coordinates, Vector2 trajectory){
+    private Vector2 intercept( Vector2 coordinates, Vector2 trajectory ){
 
         /* The velocity of a bullet */
         final double bulletVelocity = 11;
