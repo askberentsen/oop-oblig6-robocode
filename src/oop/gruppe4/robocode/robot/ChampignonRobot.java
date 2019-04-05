@@ -130,4 +130,8 @@ public class ChampignonRobot extends AdvancedRobot {
 
         return nextPosition;
     }
+
+    private Vector2 getPosition(){
+        return new Vector2( getX(), getY() );
+    }
 }
