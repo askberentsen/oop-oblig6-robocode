@@ -121,10 +121,10 @@ public class ChampignonRobot extends AdvancedRobot {
         double previousSteps = 0;
 
         /* The lookahead position of the target. */
-        Vector2 nextPosition = coordinates.add(trajectory);
+        Vector2 nextPosition = coordinates;
 
         /* Iterate until the difference between the steps is less than 0.5 */
-        while( (steps-previousSteps) > 0.5 ){
+        while( Math.abs(steps-previousSteps) > 0.2 ){
             previousSteps = steps;
             /* Set the amount of steps to check to the distance to the next
                position divided by the bullet velocity */
