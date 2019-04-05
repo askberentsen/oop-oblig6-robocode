@@ -1,5 +1,7 @@
 package oop.gruppe4.robocode.robot;
 
+import oblig6.vector.Vector;
+import oop.gruppe4.robocode.transform.Vector2;
 import oop.gruppe4.robocode.utility.Utility;
 import robocode.AdvancedRobot;
 import robocode.HitWallEvent;
@@ -81,19 +83,11 @@ public class ChampignonRobot extends AdvancedRobot {
         /* Lock-on radar */
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
 
-        /* Predict the position of the target */
-        int predictedTargetX = (targetX) + (int)(targetDX * (e.getDistance() / leadingFactor));
-        int predictedTargetY = (targetY) + (int)(targetDY * (e.getDistance() / leadingFactor));
-
-        /* Calculate the angle to the target */
-        double angle = (Math.atan2( predictedTargetX, predictedTargetY ) + (2*Math.PI)) % (2*Math.PI);
+        Vector2 predictedPosition = intercept( new Vector2(targetX, targetY) , new Vector2(targetDX, targetDY));
 
         /* Take aim */
-        aimGun( predictedTargetX, predictedTargetY );
-        /* Shoot */
-        if( Utility.signedAngleDifference(getGunHeadingRadians(), angle) < 0.05 ){
-            System.out.println("Within 0.5% of target");
-        }
+        aimGun( predictedPosition.getX(), predictedPosition.getY() );
+
         if( getGunTurnRemaining() < accuracy && getGunHeat() == 0) setFire(3);
 
         //TODO: Make movement logic. This movement is dummy behaviour.
@@ -108,5 +102,20 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onScannedRobot( ScannedRobotEvent e ) {
         targetRobot(e); //targets the robot coordinates and vector of enemy
         lockOn(e);
+    }
+
+    private Vector2 intercept(Vector2 coordinates, Vector2 trajectory){
+        final double bulletVelocity = 11;
+        double steps = 1;
+        double previousSteps = 0;
+        Vector2 nextPosition = coordinates.add(trajectory);
+        boolean condition = true;
+        while( (steps-previousSteps) > 0.5 ){
+            previousSteps = steps;
+            steps = nextPosition.getScalar() / bulletVelocity;
+            nextPosition = coordinates.add(  trajectory.multiply(steps) );
+        }
+
+        return nextPosition;
     }
 }
