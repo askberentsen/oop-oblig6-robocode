@@ -79,6 +79,11 @@ public class ChampignonRobot extends AdvancedRobot {
                 targetTransform.getTrajectory().multiply(targetTransform.getVelocity())
         );
 
+        Vector2 restrainedPredictedPosition = new Vector2(
+                Utility.limit( predictedPosition.getX() + getX(), getWidth(), getBattleFieldWidth()  - getWidth()  ),
+                Utility.limit( predictedPosition.getY() + getY(), getHeight(),getBattleFieldHeight() - getHeight() )
+        );
+        predictedPosition = restrainedPredictedPosition.subtract( getPosition() );
         /* Take aim */
         aimGun( predictedPosition );
 
