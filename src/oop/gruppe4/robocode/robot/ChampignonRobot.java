@@ -88,10 +88,6 @@ public class ChampignonRobot extends AdvancedRobot {
         /* Calculate the angle to the target */
         double angle = (Math.atan2( predictedTargetX, predictedTargetY ) + (2*Math.PI)) % (2*Math.PI);
 
-        final double distanceFactor = 22;
-        double predictedTargetX = target.getPosition().getX() + target.getTrajectory().getX() * target.getVelocity() * leadingFactor * ( e.getDistance() / distanceFactor);
-        double predictedTargetY = target.getPosition().getY() + target.getTrajectory().getY() * target.getVelocity() * leadingFactor * ( e.getDistance() / distanceFactor);
-
         /* Take aim */
         aimGun( predictedTargetX, predictedTargetY );
         /* Shoot */
