@@ -1,6 +1,6 @@
 package oop.gruppe4.robocode.robot;
 
-import oblig6.vector.Vector;
+import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
 import oop.gruppe4.robocode.utility.Utility;
 import robocode.AdvancedRobot;
@@ -19,10 +19,7 @@ import robocode.ScannedRobotEvent;
  */
 public class ChampignonRobot extends AdvancedRobot {
 
-    private int targetX, targetY;
-    private double targetDX, targetDY;
-
-    private double leadingFactor = 23;
+    private Transform targetTransform;
     private int accuracy = 4;
 
     /**
@@ -44,32 +41,26 @@ public class ChampignonRobot extends AdvancedRobot {
         //TODO: Calculate the values of the target
 
         /* Calculate the absolute bearing of the target. */
-        double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
+        final double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
 
-        /* Calculate the coordinates. */
-        targetX = (int)( Math.sin( absoluteBearing ) * e.getDistance() );
-        targetY = (int)( Math.cos( absoluteBearing ) * e.getDistance() );
-
-        /* Calculate the absolute angle the enemy is moving towards. */
-        double angle = e.getHeadingRadians();
-
-        /* Calculate the relative later coordinates */
-        targetDX = ( Math.sin( angle ) * e.getVelocity() );
-        targetDY = ( Math.cos( angle ) * e.getVelocity() );
+        targetTransform = new Transform(
+                ( Math.sin( absoluteBearing ) * e.getDistance() ),
+                ( Math.cos( absoluteBearing ) * e.getDistance() ),
+                ( Math.sin( e.getHeadingRadians() ) ),
+                ( Math.cos( e.getHeadingRadians() ) ),
+                e.getVelocity()
+        );
     }
 
     /**
      * Aims the gun at a relative coordinate.
-     * @param x the relative x coordinate of the target point.
-     * @param y the relative y coordinate of the target point.
+     * @param target the target coordinate.
      */
-    private void aimGun( double x, double y ){
-        double target = (Math.atan2( x, y ) + ( 2*Math.PI )) % ( 2*Math.PI );
+    private void aimGun( Vector2 target ){
 
-        double current = getGunHeadingRadians();
-        double diff = Utility.signedAngleDifference( current, target );
+        final double shortestArc = Utility.signedAngleDifference( getGunHeadingRadians(), target.getTheta() );
 
-        setTurnGunRightRadians(diff);
+        setTurnGunRightRadians( shortestArc );
     }
 
     /**
@@ -83,10 +74,13 @@ public class ChampignonRobot extends AdvancedRobot {
         /* Lock-on radar */
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
 
-        Vector2 predictedPosition = intercept( new Vector2(targetX, targetY) , new Vector2(targetDX, targetDY));
+        Vector2 predictedPosition = intercept(
+                targetTransform.getPosition() ,
+                targetTransform.getTrajectory().multiply(targetTransform.getVelocity())
+        );
 
         /* Take aim */
-        aimGun( predictedPosition.getX(), predictedPosition.getY() );
+        aimGun( predictedPosition );
 
         if( getGunTurnRemaining() < accuracy && getGunHeat() == 0) setFire(3);
 
