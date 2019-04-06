@@ -90,8 +90,9 @@ public class Vector2 {
      * @return a {@code new Vector2}.
      */
     public Vector2 rotate( double theta ){
-        double scalar = getScalar();
-        return new Vector2( sin(theta)*scalar, cos(theta)*scalar );
+        double rx = (x * Math.cos(theta)) - (y * Math.sin(theta));
+        double ry = (x * Math.sin(theta)) + (y * Math.cos(theta));
+        return new Vector2( rx, ry );
     }
 
     /**
