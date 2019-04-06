@@ -36,6 +36,18 @@ public class Transform {
     }
 
     /**
+     * Class constructor.
+     * @param position the coordinate of an object.
+     * @param trajectory the trajectory of an object.
+     * @param velocity the velocity of an object.
+     */
+    public Transform( Vector2 position, Vector2 trajectory, double velocity ){
+        this.position = position;
+        this.trajectory = trajectory;
+        this.velocity = velocity;
+    }
+
+    /**
      * Gets the position.
      * @return the coordinates of {@code this}.
      */
