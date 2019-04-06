@@ -79,7 +79,18 @@ public class Vector2 {
      *          where {@code 0} is north, {@code PI/2} is east, {@code PI} is south and {@code 3/2 PI} is west.
      */
     public double getTheta(){
-        return (Math.atan2(x,y) + 2*PI) % (2*PI);
+        return (atan2(x,y) + 2*PI) % (2*PI);
+    }
+
+    /**
+     * Rotates {@code this} to a new {@code Vector2} using the angle {@code theta}.
+     * @param theta the radians to rotate {@code this} with. A {@code double} between
+     * {@code 0} and {@code 2 PI} (Not including {@code 2 PI}).
+     * @return a {@code new Vector2}.
+     */
+    public Vector2 rotate( double theta ){
+        double scalar = getScalar();
+        return new Vector2( sin(theta)*scalar, cos(theta)*scalar );
     }
 
     /**
