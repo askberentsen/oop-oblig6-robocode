@@ -52,6 +52,14 @@ public class Transform {
     }
 
     /**
+     * Gets the heading.
+     * @return the heading {@code this} is moving in.
+     */
+    public double getHeading() {
+        return trajectory.getTheta();
+    }
+
+    /**
      * Gets the velocity.
      * @return the velocity of the trajectory.
      */
