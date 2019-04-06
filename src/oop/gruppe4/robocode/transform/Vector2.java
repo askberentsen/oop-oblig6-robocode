@@ -1,5 +1,6 @@
 package oop.gruppe4.robocode.transform;
 
+import oop.gruppe4.robocode.utility.Utility;
 import org.jetbrains.annotations.NotNull;
 
 import static java.lang.Math.*;
@@ -85,12 +86,22 @@ public class Vector2 {
     /**
      * Rotates {@code this} to a new {@code Vector2} using the angle {@code theta}.
      * @param theta the radians to rotate {@code this} with. A {@code double} between
-     * {@code 0} and {@code 2 PI} (Not including {@code 2 PI}).
+     * {@code -2 PI} and {@code 2 PI}.
      * @return a {@code new Vector2}.
      */
     public Vector2 rotate( double theta ){
         double scalar = getScalar();
         return new Vector2( sin(theta)*scalar, cos(theta)*scalar );
+    }
+
+    /**
+     * Calculates the arc length when rotating {@code this} by an angle of {@code theta} radians.
+     * @param theta the radians to rotate {@code this} with. A {@code double} between
+     * {@code -2 PI} and {@code 2 PI}.
+     * @return the arc length when rotating {@code this} by an angle of {@code theta} radians.
+     */
+    public double arcLength( double theta ){
+        return getScalar() * theta;
     }
 
     /**
