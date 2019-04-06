@@ -7,6 +7,7 @@ import robocode.AdvancedRobot;
 import robocode.HitWallEvent;
 import robocode.ScannedRobotEvent;
 
+import java.util.HashMap;
 /*
  * TODO: 02/04/2019 | ALL
  * TODO: Implement
@@ -19,6 +20,8 @@ import robocode.ScannedRobotEvent;
  */
 public class ChampignonRobot extends AdvancedRobot {
 
+    private HashMap<String, RobotStatistics> history = new HashMap<>();
+    private String target;
     private Transform targetTransform;
     private int accuracy = 4;
     private int moveDirection = 1;
@@ -41,6 +44,11 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void targetRobot( ScannedRobotEvent e ) {
 
+        target = e.getName();
+        if( !history.containsKey(target) ){
+            history.put(target, new RobotStatistics(30));
+        }
+
         /* Calculate the absolute bearing of the target. */
         final double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
 
@@ -52,6 +60,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 ( Math.cos( e.getHeadingRadians() ) ),
                 e.getVelocity()
         );
+        history.get(target).add(targetTransform);
     }
 
     /**
