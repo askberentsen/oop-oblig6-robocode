@@ -46,8 +46,8 @@ public class ChampignonRobot extends AdvancedRobot {
 
         /* Calculate the transform of the target. */
         targetTransform = new Transform(
-                ( Math.sin( absoluteBearing ) * e.getDistance() ),
-                ( Math.cos( absoluteBearing ) * e.getDistance() ),
+                ( Math.sin( absoluteBearing ) * e.getDistance() ) + getX(),
+                ( Math.cos( absoluteBearing ) * e.getDistance() ) + getY(),
                 ( Math.sin( e.getHeadingRadians() ) ),
                 ( Math.cos( e.getHeadingRadians() ) ),
                 e.getVelocity()
@@ -78,7 +78,7 @@ public class ChampignonRobot extends AdvancedRobot {
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
 
         Vector2 predictedPosition = intercept(
-                targetTransform.getPosition() ,
+                targetTransform.getPosition().subtract(getPosition()) ,
                 targetTransform.getTrajectory().multiply(targetTransform.getVelocity())
         );
 
