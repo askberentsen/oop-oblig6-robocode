@@ -15,7 +15,7 @@ public class RobotStatistics {
     /**
      * The history of Transforms.
      */
-    private final LinkedList<Transform> history = new LinkedList<>();
+    private final LinkedList<Statistic> history = new LinkedList<>();
 
     /**
      * The amount of entries to log at once.
@@ -36,7 +36,7 @@ public class RobotStatistics {
      * entry is removed.
      * @param stat a {@code Transform}.
      */
-    public void add( @NotNull Transform stat ){
+    public void add( @NotNull Statistic stat ){
 
         /* If the size of history is larger than the capacity, remove the first entries */
         while( history.size() >= capacity ) history.removeFirst();
@@ -50,7 +50,7 @@ public class RobotStatistics {
      * @throws NullPointerException if {@code history} is empty.
      * @see #history
      */
-    public Transform getLast(){
+    public Statistic getLast(){
         return history.getLast();
     }
 
@@ -61,18 +61,25 @@ public class RobotStatistics {
      * @throws NullPointerException if {@code history} is empty.
      * @see #history
      */
-    public Transform getDelta(){
+    public Statistic getDelta(){
         /* If getDelta() is called before two entries exists, the delta is just the last index */
         if( history.size() == 1) return history.getLast();
 
-        Transform last = history.getLast();
-        Transform previous = history.get(history.size()-2);
+        Statistic last = history.getLast();
+        Statistic previous = history.get(history.size()-2);
 
         Vector2 positionDelta = last.getPosition().subtract(previous.getPosition());
         Vector2 trajectoryDelta = last.getTrajectory().subtract(previous.getTrajectory());
         double velocityDelta = last.getVelocity() - previous.getVelocity();
+        long timeStampDelta = last.getTimeStamp() - previous.getTimeStamp();
 
-        return new Transform( positionDelta, trajectoryDelta, velocityDelta );
+        return new Statistic( positionDelta, trajectoryDelta, velocityDelta, timeStampDelta );
+    }
+
+    public Statistic getPrevious(){
+        if( history.size() == 1) return history.getLast();
+
+        return history.get(history.size()-2);
     }
 
     /**
@@ -80,10 +87,29 @@ public class RobotStatistics {
      * @param index the index to fetch from.
      * @return
      * @throws IndexOutOfBoundsException if the index is out of range
-     *         ({@code index < 0 || index >= size()})
+     *         ({@code index < 0 || index >= history.size()})
      * @see #history
      */
-    public Transform get( int index ){
+    public Statistic get( int index ){
         return history.get( index );
+    }
+
+    public static class Statistic extends Transform {
+        private long timeStamp;
+        public Statistic( Vector2 position, Vector2 trajectory, double velocity, long timeStamp ){
+            super( position, trajectory, velocity);
+            this.timeStamp = timeStamp;
+        }
+        public Statistic( double x, double y, double dx, double dy, double velocity, long timeStamp){
+            super(x,y,dx,dy,velocity);
+            this.timeStamp = timeStamp;
+        }
+        public long getTimeStamp(){
+            return timeStamp;
+        }
+
+        public String toString(){
+            return String.format("Statistic: %s -> %s @ %d", getPosition(), getTrajectory(), timeStamp);
+        }
     }
 }
