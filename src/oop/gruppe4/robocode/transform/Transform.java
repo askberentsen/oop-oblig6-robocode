@@ -60,6 +60,14 @@ public class Transform {
      * @return the vector {@code this} is moving in.
      */
     public Vector2 getTrajectory() {
+        return trajectory.multiply(velocity);
+    }
+
+    /**
+     * Gets the normalized trajectory.
+     * @return the vector {@code this} is moving in.
+     */
+    public Vector2 getNormalizedTrajectory(){
         return trajectory;
     }
 

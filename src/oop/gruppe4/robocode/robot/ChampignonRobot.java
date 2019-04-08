@@ -1,13 +1,12 @@
 package oop.gruppe4.robocode.robot;
 
-import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
 import oop.gruppe4.robocode.utility.Utility;
-import robocode.AdvancedRobot;
-import robocode.HitWallEvent;
-import robocode.ScannedRobotEvent;
+import robocode.*;
 
 import java.util.HashMap;
+
+
 /*
  * TODO: 02/04/2019 | ALL
  * TODO: Implement
@@ -21,9 +20,9 @@ import java.util.HashMap;
 public class ChampignonRobot extends AdvancedRobot {
 
     private HashMap<String, RobotStatistics> history = new HashMap<>();
-    private String target;
-    private Transform targetTransform;
-    private int accuracy = 4;
+    private String targetName;
+    private long lastAttackedTimeStamp;
+    private long lastTargetSwitchTimeStamp;
     private int moveDirection = 1;
 
     /**
@@ -39,41 +38,42 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
-     * Calculates the coordinates and movement of an enemy robot.
-     * @param e the robot that was scanned.
+     * Update on every tick.
+     * @param e the status event.
      */
-    private void targetRobot( ScannedRobotEvent e ) {
+    @Override
+    public void onStatus(StatusEvent e) {
 
-        target = e.getName();
-        if( !history.containsKey(target) ){
-            history.put(target, new RobotStatistics(30));
-        }
-
-        /* Calculate the absolute bearing of the target. */
-        final double absoluteBearing = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
-
-        /* Calculate the transform of the target. */
-        targetTransform = new Transform(
-                ( Math.sin( absoluteBearing ) * e.getDistance() ) + getX(),
-                ( Math.cos( absoluteBearing ) * e.getDistance() ) + getY(),
-                ( Math.sin( e.getHeadingRadians() ) ),
-                ( Math.cos( e.getHeadingRadians() ) ),
-                e.getVelocity()
-        );
-        history.get(target).add(targetTransform);
     }
 
     /**
-     * Aims the gun at a relative coordinate.
-     * @param target the target coordinate.
+     * Logs the statistics of a target.
+     * @param e the target {@code ScannedRobotEvent}.
      */
-    private void aimGun( Vector2 target ){
+    private void logTarget( ScannedRobotEvent e ) {
 
-        /* Calculate the shortest arc between the gun heading and the target */
-        final double shortestArc = Utility.signedAngleDifference( getGunHeadingRadians(), target.getTheta() );
+        final String ROBOT_NAME = e.getName();
+        if( !history.containsKey( ROBOT_NAME ) ) history.put( ROBOT_NAME, new RobotStatistics(30) );
 
-        /* Turn the gun with this difference. */
-        setTurnGunRightRadians( shortestArc );
+        /* Calculate the absolute bearing of the target. */
+        final double ABSOLUTE_BEARING = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
+        final double ROBOT_X  = ( Math.sin( ABSOLUTE_BEARING ) * e.getDistance() ) + getX();
+        final double ROBOT_Y  = ( Math.cos( ABSOLUTE_BEARING ) * e.getDistance() ) + getY();
+        final double ROBOT_DX = ( Math.sin( e.getHeadingRadians() ) );
+        final double ROBOT_DY = ( Math.cos( e.getHeadingRadians() ) );
+        final double ROBOT_VELOCITY = e.getVelocity();
+        final long   TIMESTAMP = e.getTime();
+
+        /* Calculate the statistics of the target. */
+        RobotStatistics.Statistic targetStatistic = new RobotStatistics.Statistic(
+                ROBOT_X,
+                ROBOT_Y,
+                ROBOT_DX,
+                ROBOT_DY,
+                ROBOT_VELOCITY,
+                TIMESTAMP
+        );
+        history.get( ROBOT_NAME ).add(targetStatistic);
     }
 
     /**
@@ -81,32 +81,11 @@ public class ChampignonRobot extends AdvancedRobot {
      * Naive method.
      * @param e a scanned robot.
      */
-    private void lockOn( ScannedRobotEvent e ) {
+    private void lockOn( String target ) {
 
         /* Lock-on radar */
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
 
-        Vector2 predictedPosition = intercept(
-                targetTransform.getPosition().subtract(getPosition()) ,
-                targetTransform.getTrajectory().multiply(targetTransform.getVelocity())
-        );
-
-        /* Restrain predictedPosition such that it is bounded by the battlefield. */
-        Vector2 restrainedPredictedAbsolutePosition = new Vector2(
-                Utility.limit( predictedPosition.getX() + getX(), getWidth(), getBattleFieldWidth()  - getWidth()  ),
-                Utility.limit( predictedPosition.getY() + getY(), getHeight(),getBattleFieldHeight() - getHeight() )
-        );
-
-        /* Reset the reference frame to this. */
-        Vector2 restrainedPredictedRelativePosition = restrainedPredictedAbsolutePosition.subtract( getPosition() );
-        
-        /* Take aim */
-        aimGun( restrainedPredictedRelativePosition );
-
-        if( getGunTurnRemaining() < accuracy && getGunHeat() == 0) setFire(3);
-
-        //TODO: Make movement logic. This movement is dummy behaviour.
-        setAhead(6000 * moveDirection);
     }
     public void onHitWall(HitWallEvent e){
         moveDirection=-moveDirection;//reverse direction upon hitting a wall
@@ -114,8 +93,20 @@ public class ChampignonRobot extends AdvancedRobot {
 
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
-        targetRobot(e); //targets the robot coordinates and vector of enemy
-        lockOn(e);
+
+        logTarget(e);
+
+        if( e.getName() == targetName ){
+            /* Lock on. */
+            setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+
+
+        }
+    }
+
+    @Override
+    public void onHitByBullet( HitByBulletEvent e ) {
+        String attackingRobot = e.getName();
     }
 
     /**
@@ -129,7 +120,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @param trajectory the trajectory of a target.
      * @return the coordinate to intercept.
      */
-    private Vector2 intercept( Vector2 coordinates, Vector2 trajectory ){
+    private Vector2 linearIntercept( Vector2 referenceFrame, Vector2 coordinates, Vector2 trajectory ) {
 
         /* The velocity of a bullet */
         final double bulletVelocity = 11;
@@ -146,10 +137,12 @@ public class ChampignonRobot extends AdvancedRobot {
             previousSteps = steps;
             /* Set the amount of steps to check to the distance to the next
                position divided by the bullet velocity */
-            steps = nextPosition.getScalar() / bulletVelocity;
+            steps = nextPosition.distance(referenceFrame) / bulletVelocity;
 
             /* Set the next position to coordinates + trajectory*steps. */
             nextPosition = coordinates.add(  trajectory.multiply(steps) );
+            if( !nextPosition.isContained( 15, 15, getBattleFieldWidth()-15, getBattleFieldHeight() - 15 ) )
+                break;
         }
 
         return nextPosition;
@@ -157,6 +150,11 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * Calculates a coordinate to intercept if a target is moving in a circle.
+     * To find the intercept coordinate, find the angular difference between two trajectories and account for the time difference.
+     * Use this angle to calculate the radius of a pivot vector. The angle of the vector should be perpendicular to the
+     * trajectory. When the pivot vector is rotated by the angle that was calculated, the arc-length is equal to
+     * the scalar of the {@code trajectory} vector.
+     * Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
      * @param referenceFrame the coordinate to use as a reference frame.
      * @param coordinates the coordinate of the target.
      * @param trajectory the direction and velocity of the target.
@@ -188,7 +186,7 @@ public class ChampignonRobot extends AdvancedRobot {
         final Vector2 PIVOT = perpendicularVector.multiply( PIVOT_RADIUS / perpendicularVector.getScalar() );
 
         //TODO: make bulletVelocity dynamic. As of now its hard-coded.
-        double bulletVelocity = 11;
+        double bulletVelocity = 11; // 20 - ( 3 * bulletpower )
 
         /* The predicted position. */
         Vector2 nextPosition = coordinates;
@@ -206,7 +204,7 @@ public class ChampignonRobot extends AdvancedRobot {
             steps = nextPosition.distance( referenceFrame ) / bulletVelocity;
 
             /* Calculate the arc as the pivot rotated by the amount of steps, then subtract the original pivot. */
-            Vector2 arc = PIVOT.rotate(-THETA * steps).subtract( PIVOT );
+            Vector2 arc = PIVOT.rotate( -THETA * steps).subtract( PIVOT );
 
             /* Predict the position as the current position plus an arc. */
             nextPosition = coordinates.add( arc );
