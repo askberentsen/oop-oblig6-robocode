@@ -95,6 +95,41 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     public void onHitWall(HitWallEvent e){
+    private void aimGun() {
+
+        final RobotStatistics TARGET_STATISTICS = history.get(targetName);
+        final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
+        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
+
+        Vector2 targetCoordinates = CURRENT_TARGET_STAT.getPosition();
+        Vector2 targetTrajectory = CURRENT_TARGET_STAT.getTrajectory();
+        Vector2 targetOldTrajectory = PREVIOUS_TARGET_STAT.getTrajectory();
+        long deltaTime = CURRENT_TARGET_STAT.getTimeStamp() - PREVIOUS_TARGET_STAT.getTimeStamp();
+
+        final double angularDifference = Utility.signedAngleDifference(
+                targetOldTrajectory.getTheta(),
+                targetTrajectory.getTheta()
+        );
+
+        Vector2 predictedPosition;
+
+        /* Direct interception */
+        if( targetTrajectory.getScalar() == 0.0 || targetTrajectory.subtract( targetOldTrajectory ).getScalar() < 0.5){
+            predictedPosition = targetCoordinates;
+        }
+        /* Linear interception. */
+        else if( Math.abs(angularDifference) < 0.05 ){
+            predictedPosition = linearIntercept( getPosition(), targetCoordinates, targetTrajectory );
+        }
+        /* Circular interception. */
+        else{
+            predictedPosition = circularIntercept( getPosition(), targetCoordinates, targetTrajectory, targetOldTrajectory, deltaTime );
+        }
+
+        double theta = Utility.signedAngleDifference( getGunHeadingRadians(), predictedPosition.subtract(getPosition()).getTheta() );
+        setTurnGunRightRadians( theta );
+    }
+
         if( wallHitCooldown <= 0 ){
             moveDirection *= -1;
             wallHitCooldown = 2;
