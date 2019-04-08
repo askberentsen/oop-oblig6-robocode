@@ -4,6 +4,7 @@ import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
 import oop.gruppe4.robocode.utility.Utility;
 import robocode.*;
+import robocode.util.Utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,10 +27,11 @@ public class ChampignonRobot extends AdvancedRobot {
     private HashMap<String, RobotStatistics> history = new HashMap<>();
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
     private String targetName;
-    private long lastAttackedTimeStamp;
-    private long lastTargetSwitchTimeStamp;
     private double wallHitCooldown = 0;
     private int moveDirection = 1;
+    private double velocity = 8;
+
+    private double analyzingDuration = 0;
 
     /**
      * Main method of {@code this}.
@@ -40,7 +42,7 @@ public class ChampignonRobot extends AdvancedRobot {
         setAdjustRadarForRobotTurn( true );
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
-        turnRadarRightRadians( Double.POSITIVE_INFINITY );
+        beginScan();
     }
 
     /**
@@ -49,6 +51,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onStatus(StatusEvent e) {
+        System.out.println(status.name());
         for( Transform virtualBullet : virtualBullets ){
             virtualBullet.update();
             if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
@@ -75,6 +78,8 @@ public class ChampignonRobot extends AdvancedRobot {
         final double ROBOT_VELOCITY = e.getVelocity();
         final long   TIMESTAMP = e.getTime();
 
+        final double ENERGY = e.getEnergy();
+
         /* Calculate the statistics of the target. */
         RobotStatistics.Statistic targetStatistic = new RobotStatistics.Statistic(
                 ROBOT_X,
@@ -84,20 +89,11 @@ public class ChampignonRobot extends AdvancedRobot {
                 ROBOT_VELOCITY,
                 TIMESTAMP
         );
-        history.get( ROBOT_NAME ).add(targetStatistic);
+        RobotStatistics statistics = history.get( ROBOT_NAME );
+        statistics.add(targetStatistic);
+        statistics.setEnergy( ENERGY );
     }
 
-    /**
-     * Locks gun on enemy current position.
-     * Naive method.
-     * @param e a scanned robot.
-     */
-    private void lockOn( String target ) {
-
-        /* Lock-on radar */
-        setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
-
-    }
     public void onHitWall(HitWallEvent e){
         if( wallHitCooldown <= 0 ){
             moveDirection *= -1;
@@ -112,11 +108,56 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onScannedRobot( ScannedRobotEvent e ) {
 
         logTarget(e);
+        if( targetName == null ){
+            targetName = e.getName();
+            beginAnalyze();
+        }
+        Vector2 lastPosition = history.get(targetName).getLast().getPosition();
+        Vector2 relativePosition = lastPosition.subtract( this.getPosition() );
 
-        if( e.getName() == targetName ){
-            /* Lock on. */
-            setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+        //TODO: Does not account for if the target is no longer on the battlefield (dead).
+        switch ( status ){
+            case SCANNING:
+                System.out.println("Scanning... found " + e.getName() );
+                /* If the robot has completed the 360 degree scan, begin targeting */
+                if( getRadarTurnRemainingRadians() < 3 * Math.PI && e.getName().equals(targetName) ){
+                    beginAnalyze();
+                }
+                else if( getRadarTurnRemainingRadians() < 2 * Math.PI ){ //Finished scanning
+                    beginTarget();
+                }
+                break;
+            case TARGETING:
+                System.out.println( String.format("Targeting %s @ %s", targetName, lastPosition) );
 
+                if( e.getName().equals(targetName) ){
+                    beginAnalyze();
+                }
+                else {
+                    /* Aim radar on target */
+                    double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), relativePosition.getTheta() );
+
+
+                    /* If target moved, add 1 to turn */
+                    setTurnRadarRightRadians(theta + 1);
+                }
+                break;
+            case ANALYZING:
+
+                System.out.println( "Analyzing " + e.getName() + "..." );
+                analyzingDuration++;
+
+                /* Lock radar on target. */
+                setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+
+                if( analyzingDuration > 3 ){
+                    beginEngage();
+                }
+                break;
+            case ENGAGING:
+                System.out.println( String.format("Targeting %s @ %s", e.getName(), lastPosition) );
+                beginScan();
+                break;
 
         }
     }
