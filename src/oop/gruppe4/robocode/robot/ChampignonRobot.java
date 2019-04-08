@@ -1,9 +1,11 @@
 package oop.gruppe4.robocode.robot;
 
+import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
 import oop.gruppe4.robocode.utility.Utility;
 import robocode.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -20,6 +22,7 @@ import java.util.HashMap;
 public class ChampignonRobot extends AdvancedRobot {
 
     private HashMap<String, RobotStatistics> history = new HashMap<>();
+    private ArrayList<Transform> virtualBullets;
     private String targetName;
     private long lastAttackedTimeStamp;
     private long lastTargetSwitchTimeStamp;
@@ -43,7 +46,12 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onStatus(StatusEvent e) {
-
+        for( Transform virtualBullet : virtualBullets ){
+            virtualBullet.update();
+            if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
+                virtualBullets.remove( virtualBullet );
+            }
+        }
     }
 
     /**

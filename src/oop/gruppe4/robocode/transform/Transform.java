@@ -86,4 +86,11 @@ public class Transform {
     public double getVelocity() {
         return velocity;
     }
+
+    /**
+     * Updates {@code this} position.
+     */
+    public void update(){
+        position.add( trajectory.multiply(velocity) );
+    }
 }
