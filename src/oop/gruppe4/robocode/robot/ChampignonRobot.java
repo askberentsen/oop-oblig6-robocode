@@ -67,6 +67,12 @@ public class ChampignonRobot extends AdvancedRobot {
     private void logTarget( ScannedRobotEvent e ) {
 
         final String ROBOT_NAME = e.getName();
+
+        /* target if e is the first scan. */
+        if( targetName == null ) {
+            targetName = ROBOT_NAME;
+            beginAnalyze();
+        }
         if( !history.containsKey( ROBOT_NAME ) ) history.put( ROBOT_NAME, new RobotStatistics(30) );
 
         /* Calculate the absolute bearing of the target. */
@@ -147,11 +153,10 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onScannedRobot( ScannedRobotEvent e ) {
 
         logTarget(e);
-        if( targetName == null ){
-            targetName = e.getName();
-            beginAnalyze();
-        }
-        Vector2 lastPosition = history.get(targetName).getLast().getPosition();
+
+        final RobotStatistics.Statistic CURRENT_TARGET_STAT = history.get(targetName).getLast();
+
+        Vector2 lastPosition = CURRENT_TARGET_STAT.getPosition();
         Vector2 relativePosition = lastPosition.subtract( this.getPosition() );
 
         //TODO: Does not account for if the target is no longer on the battlefield (dead).
