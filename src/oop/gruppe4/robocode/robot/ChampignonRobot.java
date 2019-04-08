@@ -3,8 +3,8 @@ package oop.gruppe4.robocode.robot;
 import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
 import oop.gruppe4.robocode.utility.Utility;
+import org.jetbrains.annotations.NotNull;
 import robocode.*;
-import robocode.util.Utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * The history of the targets.
      */
-    private HashMap<String, RobotStatistics> history = new HashMap<>();
+    private final HashMap<String, RobotStatistics> history = new HashMap<>();
 
     /**
      * A list of virtual bullets.
@@ -95,7 +95,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * Logs the statistics of a target.
      * @param e the target {@code ScannedRobotEvent}.
      */
-    private void logTarget( ScannedRobotEvent e ) {
+    private void logTarget( @NotNull ScannedRobotEvent e ) {
 
         final String ROBOT_NAME = e.getName();
 
@@ -198,7 +198,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * {@inheritDoc}
      */
     @Override
-    public void onHitWall( HitWallEvent e ){
+    public void onHitWall( HitWallEvent e ) {
         if( wallHitCooldown <= 0 ){
             moveDirection *= -1;
             wallHitCooldown = 2;
@@ -257,7 +257,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus
      */
     @Override
-    public void onScannedRobot( ScannedRobotEvent e ) {
+    public synchronized void onScannedRobot( ScannedRobotEvent e ) {
 
         logTarget(e);
 
@@ -394,7 +394,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * This method takes origo as its reference point, in order to generalize this method
      * to use other reference points, transform all the relevant vectors such that the reference
      * point becomes {@code (0,0)}.
-     * Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
+     * <p>
+     *     Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
+     * </p>
+     * <em>A reversible function that can be applied to any reference frame.</em>
      * @param coordinates the initial coordinates of a target.
      * @param trajectory the trajectory of a target.
      * @return the coordinate to intercept.
@@ -433,7 +436,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * Use this angle to calculate the radius of a pivot vector. The angle of the vector should be perpendicular to the
      * trajectory. When the pivot vector is rotated by the angle that was calculated, the arc-length is equal to
      * the scalar of the {@code trajectory} vector.
-     * Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
+     * <p>
+     *     Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
+     * </p>
+     * <em>A reversible function that can be applied to any reference frame.</em>
      * @param referenceFrame the coordinate to use as a reference frame.
      * @param coordinates the coordinate of the target.
      * @param trajectory the direction and velocity of the target.
