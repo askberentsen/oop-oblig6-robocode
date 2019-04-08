@@ -21,6 +21,8 @@ import java.util.HashMap;
  */
 public class ChampignonRobot extends AdvancedRobot {
 
+    private RadarStatus status = RadarStatus.SCANNING;
+
     private HashMap<String, RobotStatistics> history = new HashMap<>();
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
     private String targetName;
@@ -121,7 +123,28 @@ public class ChampignonRobot extends AdvancedRobot {
 
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
-        String attackingRobot = e.getName();
+        targetName = e.getName();
+
+    }
+
+    private void beginScan(){
+        status = RadarStatus.SCANNING;
+        /* Scan 720 degrees in case target has moved. */
+        setTurnRadarRightRadians( 4 * Math.PI );
+    }
+
+    private void beginEngage(){
+        status = RadarStatus.ENGAGING;
+    }
+
+    private void beginAnalyze(){
+        analyzingDuration = 0;
+        setTurnRadarRightRadians( Double.NEGATIVE_INFINITY );
+        status = RadarStatus.ANALYZING;
+    }
+
+    private void beginTarget(){
+        status = RadarStatus.TARGETING;
     }
 
     /**
