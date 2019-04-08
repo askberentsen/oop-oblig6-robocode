@@ -130,6 +130,20 @@ public class Vector2 {
     public Vector2 normalized(){
         return this.multiply( 1 / this.getScalar() );
     }
+
+    /**
+     * Calculates whether {@code this} is bounded inside a rectangle.
+     * @param lx the lower bound of the x coordinate.
+     * @param ly the lower bound of the y coordinate.
+     * @param ux the upper bound of the x coordinate.
+     * @param uy the upper bound of the y coordinate.
+     * @return {@code true} if {@code this} is inside the rectangle {@code [lx,ly,ux,uy]}.
+     *          {@code false} otherwise.
+     */
+    public boolean isContained( double lx, double ly, double ux, double uy ){
+        return this.x >= lx && this.x <= ux && this.y >= ly && this.y <= uy;
+    }
+
     @Override
     public String toString(){
         return String.format("<%04f,%04f>", x, y);
