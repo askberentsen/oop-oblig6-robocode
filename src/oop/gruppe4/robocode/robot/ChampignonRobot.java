@@ -117,6 +117,11 @@ public class ChampignonRobot extends AdvancedRobot {
 
         //TODO: Does not account for if the target is no longer on the battlefield (dead).
         switch ( status ){
+
+            /* The robot is scanning.
+             * Continue to scan until the robot has scanned at least 360 degrees,
+             * or if the robot has scanned the target again after having scanned 180 degrees.
+             */
             case SCANNING:
                 System.out.println("Scanning... found " + e.getName() );
                 /* If the robot has completed the 360 degree scan, begin targeting */
@@ -127,6 +132,11 @@ public class ChampignonRobot extends AdvancedRobot {
                     beginTarget();
                 }
                 break;
+
+             /* The robot is targeting.
+              * Turn radar to the targets last known position. If the target wasn't found,
+              * continue to turn until the target is found.
+              */
             case TARGETING:
                 System.out.println( String.format("Targeting %s @ %s", targetName, lastPosition) );
 
@@ -142,6 +152,11 @@ public class ChampignonRobot extends AdvancedRobot {
                     setTurnRadarRightRadians(theta + 1);
                 }
                 break;
+
+            /* The robot is analyzing the target.
+             * Analyze the target at least 2 times to gather enough information to predict
+             * the targets future position to a reasonable degree of accuracy.
+             */
             case ANALYZING:
 
                 System.out.println( "Analyzing " + e.getName() + "..." );
@@ -150,13 +165,21 @@ public class ChampignonRobot extends AdvancedRobot {
                 /* Lock radar on target. */
                 setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
 
-                if( analyzingDuration > 3 ){
+                if( analyzingDuration > 2 ){
                     beginEngage();
                 }
                 break;
+
+            /* The robot is actively engaging the target.
+             * Continue to predict the targets position and aim until the gun has cooled down.
+             * When the gun is cool, shoot and start scanning again.
+             */
             case ENGAGING:
                 System.out.println( String.format("Targeting %s @ %s", e.getName(), lastPosition) );
-                beginScan();
+                if( getGunHeat() == 0 ) {
+                    System.out.println( String.format("Shooting %s @ %s", e.getName(), lastPosition) );
+                    beginScan();
+                }
                 break;
 
         }
@@ -168,22 +191,33 @@ public class ChampignonRobot extends AdvancedRobot {
 
     }
 
+    /**
+     * Initializes the {@code SCANNING} status.
+     */
     private void beginScan(){
         status = RadarStatus.SCANNING;
         /* Scan 720 degrees in case target has moved. */
         setTurnRadarRightRadians( 4 * Math.PI );
     }
 
+    /**
+     * Initializes the {@code ENGAGING} status.
+     */
     private void beginEngage(){
         status = RadarStatus.ENGAGING;
     }
 
+    /**
+     * Initializes the {@code ANALYZING} status.
+     */
     private void beginAnalyze(){
         analyzingDuration = 0;
         setTurnRadarRightRadians( Double.NEGATIVE_INFINITY );
         status = RadarStatus.ANALYZING;
     }
-
+    /**
+     * Initializes the {@code TARGETING} status.
+     */
     private void beginTarget(){
         status = RadarStatus.TARGETING;
     }
