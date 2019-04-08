@@ -22,15 +22,50 @@ import java.util.HashMap;
  */
 public class ChampignonRobot extends AdvancedRobot {
 
-    private RadarStatus status = RadarStatus.SCANNING;
+    /**
+     * The state of the scanner.
+     * @see RadarStatus
+     */
+    private RadarStatus status;
 
+    /**
+     * The history of the targets.
+     */
     private HashMap<String, RobotStatistics> history = new HashMap<>();
+
+    /**
+     * A list of virtual bullets.
+     * <p>
+     *     To avoid enemies the robot keeps track of virtual bullets the enemies could shoot, and
+     *     tries to avoid them.
+     * </p>
+     * @see #onStatus(StatusEvent)
+     */
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
+
+    /**
+     * The name of the enemy to target.
+     */
     private String targetName;
+
+    /**
+     * A timer to ensure the robot doesn't get stuck on a wall.
+     */
     private double wallHitCooldown = 0;
+
+    /**
+     * The direction to move in.
+     */
     private int moveDirection = 1;
+
+    /**
+     * The velocity to move in.
+     */
     private double velocity = 8;
 
+    /**
+     * A counter to ensure the robot has sufficient data about an enemy before trying to engage.
+     */
     private double analyzingDuration = 0;
 
     /**
@@ -50,7 +85,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @param e the status event.
      */
     @Override
-    public void onStatus(StatusEvent e) {
+    public void onStatus( StatusEvent e ) {
         System.out.println(status.name());
         for( Transform virtualBullet : virtualBullets ){
             virtualBullet.update();
@@ -295,6 +330,9 @@ public class ChampignonRobot extends AdvancedRobot {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
         targetName = e.getName();
@@ -303,8 +341,9 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * Initializes the {@code SCANNING} status.
+     * @see RadarStatus#SCANNING
      */
-    private void beginScan(){
+    private void beginScan() {
         status = RadarStatus.SCANNING;
         /* Scan 720 degrees in case target has moved. */
         setTurnRadarRightRadians( 4 * Math.PI );
@@ -312,23 +351,27 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * Initializes the {@code ENGAGING} status.
+     * @see RadarStatus#ENGAGING
      */
-    private void beginEngage(){
+    private void beginEngage() {
         status = RadarStatus.ENGAGING;
     }
 
     /**
      * Initializes the {@code ANALYZING} status.
+     * @see RadarStatus#ANALYZING
      */
-    private void beginAnalyze(){
+    private void beginAnalyze() {
         analyzingDuration = 0;
         setTurnRadarRightRadians( Double.NEGATIVE_INFINITY );
         status = RadarStatus.ANALYZING;
     }
+
     /**
      * Initializes the {@code TARGETING} status.
+     * @see RadarStatus#TARGETING
      */
-    private void beginTarget(){
+    private void beginTarget() {
         status = RadarStatus.TARGETING;
     }
 
@@ -444,10 +487,13 @@ public class ChampignonRobot extends AdvancedRobot {
      * Gets the coordinates of {@code this} robot as a {@code Vector2}.
      * @return the coordinates of {@code this}.
      */
-    private Vector2 getPosition(){
+    private Vector2 getPosition() {
         return new Vector2( getX(), getY() );
     }
 
+    /**
+     * The state finite states of {@code this}.
+     */
     private enum RadarStatus {
 
         /**
