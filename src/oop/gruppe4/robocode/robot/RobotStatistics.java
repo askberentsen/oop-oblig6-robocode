@@ -13,6 +13,16 @@ import java.util.LinkedList;
 public class RobotStatistics {
 
     /**
+     * The status.
+     */
+    private boolean alive = true;
+
+    /**
+     * The amount of energy left.
+     */
+    private double energy = 100;
+
+    /**
      * The history of Transforms.
      */
     private final LinkedList<Statistic> history = new LinkedList<>();
@@ -42,6 +52,38 @@ public class RobotStatistics {
         while( history.size() >= capacity ) history.removeFirst();
 
         history.add( stat );
+    }
+
+    /**
+     * Sets the energy.
+     * @param energy the amount of energy left.
+     */
+    public void setEnergy( double energy ){
+        this.energy = energy;
+    }
+
+    /**
+     * Sets the status to retired.
+     */
+    public void retire(){
+        this.alive = false;
+    }
+
+    /**
+     * Gets the energy.
+     * @return the amount of energy left.
+     */
+    public double getEnergy() {
+        return energy;
+    }
+
+    /**
+     * Checks if {@code this} is alive
+     * @return {@code true} if {@code this} is alive.
+     *         {@code false} otherwise.
+     */
+    public boolean isAlive(){
+        return alive;
     }
 
     /**
