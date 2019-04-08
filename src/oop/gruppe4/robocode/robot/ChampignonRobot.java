@@ -202,7 +202,9 @@ public class ChampignonRobot extends AdvancedRobot {
                 analyzingDuration++;
 
                 /* Lock radar on target. */
-                setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+                lockScanner();
+
+                aimGun();
 
                 if( analyzingDuration > 2 ){
                     beginEngage();
@@ -214,9 +216,13 @@ public class ChampignonRobot extends AdvancedRobot {
              * When the gun is cool, shoot and start scanning again.
              */
             case ENGAGING:
-                System.out.println( String.format("Targeting %s @ %s", e.getName(), lastPosition) );
-                if( getGunHeat() == 0 ) {
+                System.out.println( String.format("Engaging %s @ %s", e.getName(), lastPosition) );
+                lockScanner();
+                aimGun();
+
+                if( getGunHeat() == 0 && getGunTurnRemaining() < 1 ) {
                     System.out.println( String.format("Shooting %s @ %s", e.getName(), lastPosition) );
+                    setFire(3);
                     beginScan();
                 }
                 break;
