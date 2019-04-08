@@ -156,6 +156,70 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
+     * Calculates a coordinate to intercept if a target is moving in a circle.
+     * @param referenceFrame the coordinate to use as a reference frame.
+     * @param coordinates the coordinate of the target.
+     * @param trajectory the direction and velocity of the target.
+     * @param oldTrajectory the direction and velocity the target when the target was last calculated.
+     * @param deltaTime the amount of ticks since {@code oldTrajectory} was calculated.
+     * @return a coordinate to intercept.
+     */
+    private Vector2 circularIntercept( Vector2 referenceFrame, Vector2 coordinates, Vector2 trajectory, Vector2 oldTrajectory, long deltaTime ){
+
+        /* The difference in angle. */
+        double angleDifference = Utility.signedAngleDifference( oldTrajectory.getTheta(), trajectory.getTheta() );
+
+        /* The angle of one step */
+        final double THETA = angleDifference / deltaTime;
+
+        /* The length of the arc after one step. */
+        final double ARCLENGTH = trajectory.getScalar();
+
+        /* The radius of the pivot. */
+        final double PIVOT_RADIUS = Math.abs(ARCLENGTH / THETA);
+
+        /* The handedness of the perpendicular vector. */
+        int handedness = THETA >= 0 ? -1 : 1;
+
+        /* The vector perpendicular to the trajectory. */
+        Vector2 perpendicularVector = new Vector2( trajectory.getY()*handedness, trajectory.getX() * (-handedness) );
+
+        /* The vector to pivot from. */
+        final Vector2 PIVOT = perpendicularVector.multiply( PIVOT_RADIUS / perpendicularVector.getScalar() );
+
+        //TODO: make bulletVelocity dynamic. As of now its hard-coded.
+        double bulletVelocity = 11;
+
+        /* The predicted position. */
+        Vector2 nextPosition = coordinates;
+
+        /* The amount of ticks until the intercept will happen. */
+        double steps = 1;
+        double previousSteps = 0;
+
+        /* Continue to predict until the difference in predictions is sufficiently low. */
+        while( Math.abs(steps-previousSteps) > 0.2 ) {
+            previousSteps = steps;
+
+            /* The amount of ticks until the intercept can be no lower than the amount of ticks
+               until the bullet hits the current predicted position. */
+            steps = nextPosition.distance( referenceFrame ) / bulletVelocity;
+
+            /* Calculate the arc as the pivot rotated by the amount of steps, then subtract the original pivot. */
+            Vector2 arc = PIVOT.rotate(-THETA * steps).subtract( PIVOT );
+
+            /* Predict the position as the current position plus an arc. */
+            nextPosition = coordinates.add( arc );
+
+            /* If the predicted position is not inbounds, break. */
+            if( !nextPosition.isContained(15, 15, getBattleFieldWidth()-15, getBattleFieldHeight() - 15) )
+                break;
+        }
+
+        return nextPosition;
+    }
+
+    /**
      * Gets the coordinates of {@code this} robot as a {@code Vector2}.
      * @return the coordinates of {@code this}.
      */
