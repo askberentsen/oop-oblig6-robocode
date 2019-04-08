@@ -123,6 +123,13 @@ public class Vector2 {
         return this.subtract( v ).getScalar();
     }
 
+    /**
+     * Calculates a normal vector with the same direction and a scalar of {@code 1}.
+     * @return a {@code new} normalized {@code Vector2}.
+     */
+    public Vector2 normalized(){
+        return this.multiply( 1 / this.getScalar() );
+    }
     @Override
     public String toString(){
         return String.format("<%04f,%04f>", x, y);
