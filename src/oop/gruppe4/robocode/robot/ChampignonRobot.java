@@ -95,6 +95,10 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     public void onHitWall(HitWallEvent e){
+    private void lockScanner() {
+        setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+    }
+
     private void aimGun() {
 
         final RobotStatistics TARGET_STATISTICS = history.get(targetName);
