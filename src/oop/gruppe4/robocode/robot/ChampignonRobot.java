@@ -257,7 +257,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus
      */
     @Override
-    public synchronized void onScannedRobot( ScannedRobotEvent e ) {
+    public void onScannedRobot( ScannedRobotEvent e ) {
 
         logTarget(e);
 
