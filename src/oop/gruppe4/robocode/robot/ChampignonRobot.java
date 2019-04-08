@@ -100,10 +100,34 @@ public class ChampignonRobot extends AdvancedRobot {
         statistics.setEnergy( ENERGY );
     }
 
+    /**
+     * Locks the scanner.
+     * Flips the rotation of the scanner.
+     */
     private void lockScanner() {
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
     }
 
+    /**
+     * Aims the gun at a target.
+     * Estimates a future position and turns the gun to that direction.
+     * <p>
+     *     If the target is not moving, or not moving a lot on average. The robot will aim towards the
+     *     targets current position.
+     * </p>
+     * <p>
+     *     If the target is moving in a straight line, the robot will intercept the target in a straight line.
+     *     {@code circularInterception()} is reliant on division by the angle, and when the angle is {@code 0},
+     *     the method cannot estimate a coordinate. {@code linearIntercept} is faster than {@code circularIntercept()}
+     *     and should be used as often as possible before it.
+     * </p>
+     * <p>
+     *     If the target is moving in a curve, the robot will assume the target will continue to move in the
+     *     same curve.
+     * </p>
+     * @see #linearIntercept(Vector2, Vector2, Vector2)
+     * @see #circularIntercept(Vector2, Vector2, Vector2, Vector2, long)
+     */
     private void aimGun() {
 
         final RobotStatistics TARGET_STATISTICS = history.get(targetName);
@@ -139,6 +163,10 @@ public class ChampignonRobot extends AdvancedRobot {
         setTurnGunRightRadians( theta );
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void onHitWall( HitWallEvent e ){
         if( wallHitCooldown <= 0 ){
             moveDirection *= -1;
@@ -149,6 +177,37 @@ public class ChampignonRobot extends AdvancedRobot {
         }
     }
 
+    /**
+     * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
+     * Uses finite states to decide what actions to perform.
+     * <p>
+     *     When the robot is scanning, it will scan {@code 180 ~ 720} degrees until it has scanned all enemies or
+     *     found the target after the initial {@code 180} degrees.
+     *     If the robot finds the target again before the first 360 degrees, it will jump directly to analyze.
+           Otherwise, it will continue to turn the radar until it has found another target and will then
+     *     switch to targeting.
+     * </p>
+     * <p>
+     *     When the robot is targeting, it will rotate the scanner towards where the target was last seen. If the
+     *     target was not found at the expected position, it will continue to turn in the same direction until it does.
+     *     When the robot has found the target it will then switch to analyze.
+     * </p>
+     * <p>
+     *     When the robot is analyzing, it will keep the scanner locked on the target for 3 ticks to gather
+     *     sufficient data to make a prediction. After the 3 ticks, the robot will switch to engage.
+     * </p>
+     * <p>
+     *     When the robot is engaging, it will continue locking the scanner on the target and wait for the gun to
+     *     cool down. the robot will additionally not try to shoot if the target is too far away. After firing a shot,
+     *     the robot will initiate a scan while the gun is cooling down.
+     * </p>
+     * @see #aimGun()
+     * @see #beginScan()
+     * @see #beginTarget()
+     * @see #beginAnalyze()
+     * @see #beginEngage()
+     * @see RadarStatus
+     */
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
 
@@ -190,7 +249,6 @@ public class ChampignonRobot extends AdvancedRobot {
                 else {
                     /* Aim radar on target */
                     double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), relativePosition.getTheta() );
-
 
                     /* If target moved, add 1 to turn */
                     double secureTheta = theta >= 0.0 ? theta + 1 : theta - 1;
