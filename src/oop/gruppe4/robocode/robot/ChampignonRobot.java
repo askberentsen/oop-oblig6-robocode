@@ -188,7 +188,9 @@ public class ChampignonRobot extends AdvancedRobot {
 
 
                     /* If target moved, add 1 to turn */
-                    setTurnRadarRightRadians(theta + 1);
+                    double secureTheta = theta >= 0.0 ? theta + 1 : theta - 1;
+
+                    setTurnRadarRightRadians( secureTheta );
                 }
                 break;
 
