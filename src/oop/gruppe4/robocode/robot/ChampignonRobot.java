@@ -100,7 +100,6 @@ public class ChampignonRobot extends AdvancedRobot {
         statistics.setEnergy( ENERGY );
     }
 
-    public void onHitWall(HitWallEvent e){
     private void lockScanner() {
         setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
     }
@@ -140,6 +139,7 @@ public class ChampignonRobot extends AdvancedRobot {
         setTurnGunRightRadians( theta );
     }
 
+    public void onHitWall( HitWallEvent e ){
         if( wallHitCooldown <= 0 ){
             moveDirection *= -1;
             wallHitCooldown = 2;
