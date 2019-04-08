@@ -239,4 +239,31 @@ public class ChampignonRobot extends AdvancedRobot {
     private Vector2 getPosition(){
         return new Vector2( getX(), getY() );
     }
+
+    private enum RadarStatus {
+
+        /**
+         * The robot is scanning enemies.
+         * Scan 360 degrees before moving on.
+         */
+        SCANNING,
+
+        /**
+         * Trying to find a specific target.
+         * Finished scanning enemies, moving scanner to a specific target.
+         */
+        TARGETING,
+
+        /**
+         * Analyzing a locked-on target.
+         * Analyze for at least two ticks to get fresh data and deltas.
+         */
+        ANALYZING,
+
+        /**
+         * Actively engaging a locked-on target.
+         * Aim and shoot.
+         */
+        ENGAGING
+    }
 }
