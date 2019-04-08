@@ -22,10 +22,11 @@ import java.util.HashMap;
 public class ChampignonRobot extends AdvancedRobot {
 
     private HashMap<String, RobotStatistics> history = new HashMap<>();
-    private ArrayList<Transform> virtualBullets;
+    private ArrayList<Transform> virtualBullets = new ArrayList<>();
     private String targetName;
     private long lastAttackedTimeStamp;
     private long lastTargetSwitchTimeStamp;
+    private double wallHitCooldown = 0;
     private int moveDirection = 1;
 
     /**
@@ -96,7 +97,13 @@ public class ChampignonRobot extends AdvancedRobot {
 
     }
     public void onHitWall(HitWallEvent e){
-        moveDirection=-moveDirection;//reverse direction upon hitting a wall
+        if( wallHitCooldown <= 0 ){
+            moveDirection *= -1;
+            wallHitCooldown = 2;
+        }
+        else{
+            wallHitCooldown--;
+        }
     }
 
     @Override
