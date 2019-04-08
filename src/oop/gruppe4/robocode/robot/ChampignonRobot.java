@@ -10,11 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-/*
- * TODO: 02/04/2019 | ALL
- * TODO: Implement
- * TODO: Add Yeet function
- */
+// TODO: 08/04/2019 does not yet account for enemies killing other enemies. Call disengage(String) when the enemy cannot be found. 
 
 /**
  * The main robot of the project.
@@ -210,6 +206,23 @@ public class ChampignonRobot extends AdvancedRobot {
         else{
             wallHitCooldown--;
         }
+    }
+    
+    @Override
+    public void onRobotDeath( RobotDeathEvent e ) {
+        disengage( e.getName() );
+    }
+
+    /**
+     * Clears a target from the history and untargets it.
+     * @param name the name of a target.
+     */
+    private void disengage( String name ){
+        history.remove( name );
+        if( name.equals(targetName) ){
+            targetName = null;
+        }
+        beginScan();
     }
 
     /**
