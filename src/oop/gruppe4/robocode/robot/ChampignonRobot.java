@@ -146,33 +146,51 @@ public class ChampignonRobot extends AdvancedRobot {
         final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
         final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
 
-        Vector2 targetCoordinates = CURRENT_TARGET_STAT.getPosition();
-        Vector2 targetTrajectory = CURRENT_TARGET_STAT.getTrajectory();
-        Vector2 targetOldTrajectory = PREVIOUS_TARGET_STAT.getTrajectory();
-        long deltaTime = CURRENT_TARGET_STAT.getTimeStamp() - PREVIOUS_TARGET_STAT.getTimeStamp();
+        final Vector2 TARGET_COORDINATES = CURRENT_TARGET_STAT.getPosition();
+        final Vector2 TARGET_TRAJECTORY = CURRENT_TARGET_STAT.getTrajectory();
+        final Vector2 OLD_TARGET_TRAJECTORY = PREVIOUS_TARGET_STAT.getTrajectory();
+        long DELTA_TIME = CURRENT_TARGET_STAT.getTimeStamp() - PREVIOUS_TARGET_STAT.getTimeStamp();
 
-        final double angularDifference = Utility.signedAngleDifference(
-                targetOldTrajectory.getTheta(),
-                targetTrajectory.getTheta()
+        final double DELTA_ANGLE = Utility.signedAngleDifference(
+                OLD_TARGET_TRAJECTORY.getTheta(),
+                TARGET_TRAJECTORY.getTheta()
         );
 
         Vector2 predictedPosition;
 
         /* Direct interception */
-        if( targetTrajectory.getScalar() == 0.0 || targetTrajectory.add( targetOldTrajectory ).getScalar() < 0.5){
-            predictedPosition = targetCoordinates;
+        if( TARGET_TRAJECTORY.getScalar() == 0.0 || TARGET_TRAJECTORY.add( OLD_TARGET_TRAJECTORY ).getScalar() < 0.5){
+            predictedPosition = TARGET_COORDINATES;
         }
         /* Linear interception. */
-        else if( Math.abs(angularDifference) < 0.05 ){
-            predictedPosition = linearIntercept( getPosition(), targetCoordinates, targetTrajectory );
+        else if( Math.abs(DELTA_ANGLE) < 0.05 ){
+            predictedPosition = linearIntercept(
+                    this.getPosition(),
+                    TARGET_COORDINATES,
+                    TARGET_TRAJECTORY
+            );
         }
         /* Circular interception. */
         else{
-            predictedPosition = circularIntercept( getPosition(), targetCoordinates, targetTrajectory, targetOldTrajectory, deltaTime );
+            predictedPosition = circularIntercept(
+                    this.getPosition(),
+                    TARGET_COORDINATES,
+                    TARGET_TRAJECTORY,
+                    OLD_TARGET_TRAJECTORY,
+                    DELTA_TIME );
         }
 
-        double theta = Utility.signedAngleDifference( getGunHeadingRadians(), predictedPosition.subtract(getPosition()).getTheta() );
-        setTurnGunRightRadians( theta );
+        final double BOUNDS = 15.0;
+        final Vector2 RESTRICTED_PREDICTED_POSITION = new Vector2(
+            Utility.limit( predictedPosition.getX(), BOUNDS, getBattleFieldWidth() - BOUNDS ),
+            Utility.limit( predictedPosition.getY(), BOUNDS, getBattleFieldHeight() - BOUNDS )
+        );
+
+        final Vector2 RELATIVE_PREDICTED_POSITION = RESTRICTED_PREDICTED_POSITION.subtract( this.getPosition() );
+        final double ANGLE_TO_TARGET = RELATIVE_PREDICTED_POSITION.getTheta();
+
+        final double THETA = Utility.signedAngleDifference( getGunHeadingRadians(), ANGLE_TO_TARGET );
+        setTurnGunRightRadians( THETA );
     }
 
     /**
@@ -265,7 +283,7 @@ public class ChampignonRobot extends AdvancedRobot {
             }
             case ENGAGING: {
                 if( !scannedRobotsPerTick.contains(targetName) ){
-                    disengage();
+                    System.out.println("Did not find target this tick! : ENGAGING");
                 }
                 final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
                 final double UNCERTAINTY_FACTOR = 0.75;
