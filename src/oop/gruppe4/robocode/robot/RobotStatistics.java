@@ -12,7 +12,6 @@ import java.util.LinkedList;
  */
 public class RobotStatistics {
 
-    private boolean engagingBack = false;
     /**
      * The history of Transforms.
      */
@@ -45,12 +44,32 @@ public class RobotStatistics {
         history.add( stat );
     }
 
-    public boolean isEngagingBack(){
-        return engagingBack;
-    }
+    public void predict(){
+        Statistic last = history.getLast();
+        Statistic previous = history.get(history.size()-2);
 
-    public void setEngagingBack( boolean engagingBack ) {
-        this.engagingBack = engagingBack;
+        Vector2 position = last.getPosition().add( last.getTrajectory() );
+
+        double dTheta = Utility.signedAngleDifference(
+                previous.getNormalizedTrajectory().getTheta(),
+                last.getNormalizedTrajectory().getTheta()
+        );
+
+        Vector2 trajectory = last.getNormalizedTrajectory().rotate( dTheta );
+
+        double velocity = last.getVelocity();
+
+        long timeStamp = last.timeStamp + 1;
+        double energyDelta = last.energy;
+
+        Statistic generated = new Statistic(
+                position,
+                trajectory,
+                velocity,
+                timeStamp,
+                energyDelta
+        );
+        history.add( generated );
     }
 
     /**

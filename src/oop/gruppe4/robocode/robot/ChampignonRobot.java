@@ -208,8 +208,10 @@ public class ChampignonRobot extends AdvancedRobot {
         }
 
         /* History routine. */
-        history.forEach( (name, statistics) ->{
-            // TODO: 09/04/2019 update targets that were not scanned.
+        history.forEach( (name, statistics) -> {
+            if( !name.equals(scannedRobot) ){
+                statistics.predict();
+            }
         });
 
         /* Movement routine. */
