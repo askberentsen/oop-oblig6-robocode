@@ -25,11 +25,6 @@ public class ChampignonRobot extends AdvancedRobot {
     private RadarStatus status = RadarStatus.SCANNING;
 
     /**
-     * A {@code boolean} used for checking whether the target was found in a tick.
-     */
-    private boolean foundTarget = false;
-
-    /**
      * A counter for how many ticks the target was not found.
      */
     private int consecutiveTicksTargetNotFound = 0;
@@ -55,9 +50,11 @@ public class ChampignonRobot extends AdvancedRobot {
     private String targetName;
 
     /**
-     * The name of the scanned robot.
+     * A list of names of the robots scanned in one scanning sweep.
      */
-    private String scannedRobot;
+    private ArrayList<String> scannedRobotsPerTick = new ArrayList<>();
+
+    private ArrayList<String> scannedRobotsDuringScanPhase = new ArrayList<>();
 
     /**
      * Main method of {@code this}.
@@ -74,7 +71,6 @@ public class ChampignonRobot extends AdvancedRobot {
         setAdjustRadarForRobotTurn( true );
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
-        beginScanPhase();
     }
 
     /**
@@ -121,7 +117,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * Flips the rotation of the scanner.
      */
     private void lockScanner() {
-        setTurnRadarLeftRadians( getRadarTurnRemainingRadians() );
+        // TODO: 09/04/2019 Scanner should sweep back and forth between two angles.
     }
 
     /**
@@ -197,9 +193,8 @@ public class ChampignonRobot extends AdvancedRobot {
 
         final long TIMESTAMP = e.getTime();
 
-
         /* Virtual bullet routine. */
-        for( Transform virtualBullet : virtualBullets ){
+        for( Transform virtualBullet : virtualBullets ) {
             // TODO: 09/04/2019 virtual bullets routine.
             virtualBullet.update();
             if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
@@ -209,27 +204,18 @@ public class ChampignonRobot extends AdvancedRobot {
 
         /* History routine. */
         history.forEach( (name, statistics) -> {
-            if( !name.equals(scannedRobot) ){
+            /* Assume that robots that were not scanned this tick are moving linearly. */
+            if( !scannedRobotsPerTick.contains( name ) ){
+                // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
                 statistics.predict();
             }
         });
+
 
         /* Movement routine. */
         // TODO: 09/04/2019 update self.
 
         /* Scanner routine. */
-
-        /* If the target has not been scanned in 360 degrees, disengage. */
-        if( status != RadarStatus.SCANNING ) {
-
-            /* Keep track of how many ticks has elapsed without having scanned the target. */
-            if( foundTarget ) consecutiveTicksTargetNotFound = 0;
-            else consecutiveTicksTargetNotFound++;
-
-            if( consecutiveTicksTargetNotFound > (2.5 * Math.PI) / Rules.RADAR_TURN_RATE_RADIANS ){
-                disengage();
-            }
-        }
 
         switch ( status ) {
             case SCANNING: {
@@ -237,9 +223,34 @@ public class ChampignonRobot extends AdvancedRobot {
                  * When scanner is done, aim the scanner to where the enemy was last seen.
                  * Begin targeting phase.
                  */
+                if( getRadarTurnRemainingRadians() == 0.0 ){
+                    //finished scanning
+
+                    /* Disengage all enemies that were not found during the scan phase. */
+                    history.forEach( (name, statistics)->{
+                        if( !scannedRobotsDuringScanPhase.contains(name) ){
+                            statistics.setActive( false );
+                        }
+                    });
+
+                    /* Begin targeting. */
+                    if( targetName != null ) {
+                        beginTargetPhase();
+                    }
+                    else{
+                        beginScanPhase();
+                    }
+                }
                 break;
             }
             case TARGETING: {
+
+                if( scannedRobotsPerTick.contains(targetName) ){
+                    beginEngagePhase();
+                }
+                else if( getRadarTurnRemainingRadians() == 0.0 ){
+                    disengage();
+                }
                 /* Aim the scanner to the targets last known position.
                  * If the target was not found at the last known position, continue to scan for
                  * 180 degrees.
@@ -252,6 +263,24 @@ public class ChampignonRobot extends AdvancedRobot {
                 break;
             }
             case ENGAGING: {
+
+                final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
+                final double UNCERTAINTY_FACTOR = 0.75;
+                final double DEVIATION = Rules.RADAR_TURN_RATE_RADIANS * UNCERTAINTY_FACTOR;
+                final double LOWER_BOUNDS = ANGLE_TO_TARGET - (DEVIATION/2);
+                final double UPPER_BOUNDS = ANGLE_TO_TARGET + (DEVIATION/2);
+
+                /* The angle to the lower bounds. */
+                final double ALPHA = Utility.signedAngleDifference( getRadarHeadingRadians(), LOWER_BOUNDS );
+
+                /* The angle to the upper bounds. */
+                final double BETA = Utility.signedAngleDifference( getRadarHeadingRadians(), UPPER_BOUNDS );
+
+                /* Set the scanner to either ALPHA or BETA, whichever has the biggest magnitude. */
+                setTurnRadarRightRadians( Math.abs( ALPHA ) > Math.abs( BETA ) ? ALPHA : BETA );
+
+                //beginScanPhase();
+
                 /* Lock the scanner to the target.
                  * Aim the gun to the targets predicted position.
                  * Shoot at enemy after having scanned for at least 2 ticks, gun is cooled down, target is close enough
@@ -263,8 +292,8 @@ public class ChampignonRobot extends AdvancedRobot {
             }
         }
 
-        /* Reset foundTarget */
-        foundTarget = false;
+        /* Reset foundTarget & scannedRobot */
+        scannedRobotsPerTick.clear();
     }
 
     /**
@@ -295,11 +324,15 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
 
-        /* Log the statistics of the scanned robot */
+        /* Log the statistics of the scanned robot. */
         logTarget(e);
+        final String ROBOT_NAME = e.getName();
+        /* Add robot to the list of robots found this sweep. */
+        scannedRobotsPerTick.add( ROBOT_NAME );
 
-        /* If the scanned robot is the target, mark that the target was found. */
-        if( e.getName().equals(targetName) ) foundTarget = true;
+        if( status == RadarStatus.SCANNING && !scannedRobotsDuringScanPhase.contains(ROBOT_NAME) ){
+            scannedRobotsDuringScanPhase.add(ROBOT_NAME);
+        }
 
         /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
         final RobotStatistics STATISTICS = history.get( targetName );
@@ -346,9 +379,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#SCANNING
      */
     private void beginScanPhase() {
+        System.out.println("SCANNING...");
         status = RadarStatus.SCANNING;
         /* Scan 720 degrees in case target has moved. */
-        setTurnRadarRightRadians( 4 * Math.PI );
+        setTurnRadarRightRadians( 2 * Math.PI );
     }
 
     /**
@@ -356,6 +390,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#TARGETING
      */
     private void beginTargetPhase() {
+        System.out.println("TARGETING " + targetName);
+        Vector2 position = getTargetStatistics().getPosition().subtract( this.getPosition() );
+        double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), position.getTheta() );
+        setTurnRadarRightRadians( theta >= 0.0 ? Math.PI : -Math.PI );
         status = RadarStatus.TARGETING;
     }
 
@@ -364,6 +402,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#ENGAGING
      */
     private void beginEngagePhase() {
+        System.out.println("ENGAGING " + targetName);
+        Vector2 position = getTargetStatistics().getPosition().subtract( this.getPosition() );
+        double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), position.getTheta() );
+        setTurnRadarRightRadians( theta * 1.1 );
         status = RadarStatus.ENGAGING;
     }
 
@@ -495,6 +537,14 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private Vector2 getPosition() {
         return new Vector2( getX(), getY() );
+    }
+
+    /**
+     * Gets the latest statistics of the target. Either fresh or predicted.
+     * @return the statistics of the target this tick.
+     */
+    private RobotStatistics.Statistic getTargetStatistics(){
+        return history.get(targetName).getLast();
     }
 
     /**

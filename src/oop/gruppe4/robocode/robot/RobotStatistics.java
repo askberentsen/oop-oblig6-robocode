@@ -13,6 +13,11 @@ import java.util.LinkedList;
  */
 public class RobotStatistics {
 
+    private boolean active = true;
+    private int misses = 0;
+    private int hits = 0;
+    private int hostility = 1;
+
     /**
      * The history of Transforms.
      */
@@ -45,18 +50,21 @@ public class RobotStatistics {
         history.add( stat );
     }
 
-    public void predict(){
-        Statistic last = history.getLast();
-        Statistic previous = history.get(history.size()-2);
+    public boolean isActive(){
+        return this.active;
+    }
+
+    public void setActive( boolean active ){
+        this.active = active;
+    }
+
+    public void predict() {
+        Statistic last = getLast();
+        Statistic previous = getPrevious();
 
         Vector2 position = last.getPosition().add( last.getTrajectory() );
 
-        double dTheta = Utility.signedAngleDifference(
-                previous.getNormalizedTrajectory().getTheta(),
-                last.getNormalizedTrajectory().getTheta()
-        );
-
-        Vector2 trajectory = last.getNormalizedTrajectory().rotate( dTheta );
+        Vector2 trajectory = last.getNormalizedTrajectory();
 
         double velocity = last.getVelocity();
 
