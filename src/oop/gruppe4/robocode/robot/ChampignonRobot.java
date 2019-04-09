@@ -25,6 +25,16 @@ public class ChampignonRobot extends AdvancedRobot {
     private RadarStatus status = RadarStatus.SCANNING;
 
     /**
+     * A {@code boolean} used for checking whether the target was found in a tick.
+     */
+    private boolean foundTarget = false;
+
+    /**
+     * A counter for how many ticks the target was not found.
+     */
+    private int consecutiveTicksTargetNotFound = 0;
+
+    /**
      * The history of the targets.
      */
     private final HashMap<String, RobotStatistics> history = new HashMap<>();
@@ -40,9 +50,14 @@ public class ChampignonRobot extends AdvancedRobot {
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
 
     /**
-     * The name of the enemy to target.
+     * The name of the the target.
      */
     private String targetName;
+
+    /**
+     * The name of the scanned robot.
+     */
+    private String scannedRobot;
 
     /**
      * Main method of {@code this}.
@@ -52,13 +67,14 @@ public class ChampignonRobot extends AdvancedRobot {
         /* We want to know whether a robot has been scanned or not for every tick.
          * ScannedRobotEvent is set to a higher priority than StatusEvent, so that
          * we can check if a target has been scanned. */
-        super.setEventPriority("ScannedRobotEvent", 99);
-        super.setEventPriority("StatusEvent", 98);
+        super.setEventPriority("RobotDeathEvent", 99);
+        super.setEventPriority("ScannedRobotEvent", 98);
+        super.setEventPriority("StatusEvent", 97);
 
         setAdjustRadarForRobotTurn( true );
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
-        beginScan();
+        beginScanPhase();
     }
 
     /**
@@ -72,7 +88,6 @@ public class ChampignonRobot extends AdvancedRobot {
         /* target if e is the first scan. */
         if( targetName == null ) {
             targetName = ROBOT_NAME;
-            beginAnalyze();
         }
         if( !history.containsKey( ROBOT_NAME ) ) history.put( ROBOT_NAME, new RobotStatistics(30) );
 
@@ -166,14 +181,11 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * Clears a target from the history and untargets it.
-     * @param name the name of a target.
      */
-    private void disengage( String name ){
-        //history.remove( name );
-        /*if( name.equals(targetName) ){
-            targetName = null;
-        }*/
-        beginScan();
+    private void disengage(){
+        System.out.println(String.format("Disengaging %s: Could not find target.", targetName ));
+        targetName = null;
+        beginScanPhase();
     }
 
     /**
@@ -185,8 +197,10 @@ public class ChampignonRobot extends AdvancedRobot {
 
         final long TIMESTAMP = e.getTime();
 
+
         /* Virtual bullet routine. */
         for( Transform virtualBullet : virtualBullets ){
+            // TODO: 09/04/2019 virtual bullets routine.
             virtualBullet.update();
             if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
                 virtualBullets.remove( virtualBullet );
@@ -199,21 +213,56 @@ public class ChampignonRobot extends AdvancedRobot {
         });
 
         /* Movement routine. */
-        // TODO: 09/04/2019 update self
+        // TODO: 09/04/2019 update self.
 
         /* Scanner routine. */
-        switch (status){
-            case SCANNING:
-                if (getRadarTurnRemainingRadians() < 1.5 * Math.PI) {
-                    System.out.println( String.format( "Disengaging %s: could not find target during Scanning phase.", targetName ) );
-                    disengage( targetName );
-                }
-                break;
-            case ANALYZING:
-                break;
-            case ENGAGING:
-                break;
+
+        /* If the target has not been scanned in 360 degrees, disengage. */
+        if( status != RadarStatus.SCANNING ) {
+
+            /* Keep track of how many ticks has elapsed without having scanned the target. */
+            if( foundTarget ) consecutiveTicksTargetNotFound = 0;
+            else consecutiveTicksTargetNotFound++;
+
+            if( consecutiveTicksTargetNotFound > (2.5 * Math.PI) / Rules.RADAR_TURN_RATE_RADIANS ){
+                disengage();
+            }
         }
+
+        switch ( status ) {
+            case SCANNING: {
+                /* Scan 360 degrees to log the transforms of every enemy.
+                 * When scanner is done, aim the scanner to where the enemy was last seen.
+                 * Begin targeting phase.
+                 */
+                break;
+            }
+            case TARGETING: {
+                /* Aim the scanner to the targets last known position.
+                 * If the target was not found at the last known position, continue to scan for
+                 * 180 degrees.
+                 * If the enemy was not found at all, disengage. -> enter Scanning phase.
+                 *
+                 * if the enemy was found, enter engagement phase.
+                 *
+                 * Aim gun to the targets predicted position based on the predicted current position ( update via history )
+                 */
+                break;
+            }
+            case ENGAGING: {
+                /* Lock the scanner to the target.
+                 * Aim the gun to the targets predicted position.
+                 * Shoot at enemy after having scanned for at least 2 ticks, gun is cooled down, target is close enough
+                 * and if the gun is aiming at the predicted position with a reasonable degree of accuracy (less than 5 pixels).
+                 *
+                 * If the enemy was lost for 450 degrees, disengage.
+                 */
+                break;
+            }
+        }
+
+        /* Reset foundTarget */
+        foundTarget = false;
     }
 
     /**
@@ -240,17 +289,15 @@ public class ChampignonRobot extends AdvancedRobot {
      *     cool down. the robot will additionally not try to shoot if the target is too far away. After firing a shot,
      *     the robot will initiate a scan while the gun is cooling down.
      * </p>
-     * @see #aimGun()
-     * @see #beginScan()
-     * @see #beginAnalyze()
-     * @see #beginEngage()
-     * @see RadarStatus
      */
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
 
         /* Log the statistics of the scanned robot */
         logTarget(e);
+
+        /* If the scanned robot is the target, mark that the target was found. */
+        if( e.getName().equals(targetName) ) foundTarget = true;
 
         /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
         final RobotStatistics STATISTICS = history.get( targetName );
@@ -260,57 +307,9 @@ public class ChampignonRobot extends AdvancedRobot {
 
         /* Initiate virtualized bullets routine */
         if (CURRENT_TARGET_STAT.getEnergy() - PREVIOUS_TARGET_STAT.getEnergy() < 0) {
+
+            /* Virtual bullets routine. */
             virtualizeBullets(CURRENT_TARGET_STAT);
-        }
-
-        Vector2 lastPosition = CURRENT_TARGET_STAT.getPosition();
-        Vector2 relativePosition = lastPosition.subtract(this.getPosition());
-
-        //TODO: Does not account for if the target is no longer on the battlefield (dead).
-        switch (status) {
-
-            /* The robot is scanning.
-             * Continue to scan until the robot has scanned at least 360 degrees,
-             * or if the robot has scanned the target again after having scanned 180 degrees.
-             */
-            case SCANNING:
-                /* If the robot has completed the 360 degree scan, begin targeting */
-                if (getRadarTurnRemainingRadians() < 3 * Math.PI && e.getName().equals(targetName)) {
-                    beginAnalyze();
-                }
-                break;
-
-            /* The robot is analyzing the target.
-             * Analyze the target at least 2 times to gather enough information to predict
-             * the targets future position to a reasonable degree of accuracy.
-             */
-            case ANALYZING:
-
-                lockScanner();
-
-                if (e.getName().equals(targetName)) {
-                    aimGun();
-                    beginEngage();
-                }
-
-                break;
-
-            /* The robot is actively engaging the target.
-             * Continue to predict the targets position and aim until the gun has cooled down.
-             * When the gun is cool, shoot and start scanning again.
-             */
-            case ENGAGING:
-                lockScanner();
-
-                if (e.getName().equals(targetName)) {
-                    aimGun();
-                    if (getGunHeat() == 0 && getGunTurnRemaining() < 1 && e.getDistance() < 256 ) {
-                        setFire(3);
-                        beginScan();
-                    }
-                }
-                break;
-
         }
     }
 
@@ -320,7 +319,6 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
         targetName = e.getName();
-
     }
 
     /**
@@ -336,35 +334,35 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onRobotDeath( RobotDeathEvent e ) {
-        disengage( e.getName() );
+        /* Disengage and clear from history. */
+        if( e.getName().equals(targetName) ) disengage();
         history.remove( e.getName() );
     }
 
     /**
-     * Initializes the {@code SCANNING} status.
+     * Initializes the {@code SCANNING} phase.
      * @see RadarStatus#SCANNING
      */
-    private void beginScan() {
+    private void beginScanPhase() {
         status = RadarStatus.SCANNING;
         /* Scan 720 degrees in case target has moved. */
         setTurnRadarRightRadians( 4 * Math.PI );
     }
 
     /**
-     * Initializes the {@code ENGAGING} status.
-     * @see RadarStatus#ENGAGING
+     * Initializes the {@code TARGETING} phase.
+     * @see RadarStatus#TARGETING
      */
-    private void beginEngage() {
-        status = RadarStatus.ENGAGING;
+    private void beginTargetPhase() {
+        status = RadarStatus.TARGETING;
     }
 
     /**
-     * Initializes the {@code ANALYZING} status.
-     * @see RadarStatus#ANALYZING
+     * Initializes the {@code ENGAGING} phase.
+     * @see RadarStatus#ENGAGING
      */
-    private void beginAnalyze() {
-        setTurnRadarRightRadians( Double.NEGATIVE_INFINITY );
-        status = RadarStatus.ANALYZING;
+    private void beginEngagePhase() {
+        status = RadarStatus.ENGAGING;
     }
 
     /**
@@ -509,10 +507,9 @@ public class ChampignonRobot extends AdvancedRobot {
         SCANNING,
 
         /**
-         * Analyzing a locked-on target.
-         * Analyze for at least two ticks to get fresh data and deltas.
+         *
          */
-        ANALYZING,
+        TARGETING,
 
         /**
          * Actively engaging a locked-on target.
