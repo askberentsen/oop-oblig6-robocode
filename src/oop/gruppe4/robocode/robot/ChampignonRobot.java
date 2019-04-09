@@ -264,7 +264,9 @@ public class ChampignonRobot extends AdvancedRobot {
                 break;
             }
             case ENGAGING: {
-
+                if( !scannedRobotsPerTick.contains(targetName) ){
+                    disengage();
+                }
                 final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
                 final double UNCERTAINTY_FACTOR = 0.75;
                 final double DEVIATION = Rules.RADAR_TURN_RATE_RADIANS * UNCERTAINTY_FACTOR;
@@ -280,7 +282,15 @@ public class ChampignonRobot extends AdvancedRobot {
                 /* Set the scanner to either ALPHA or BETA, whichever has the biggest magnitude. */
                 setTurnRadarRightRadians( Math.abs( ALPHA ) > Math.abs( BETA ) ? ALPHA : BETA );
 
-                //beginScanPhase();
+                aimGun();
+
+                final double ACCEPTABLE_ACCURACY = Math.PI / 180;
+                if( getGunHeat() == 0 && getGunTurnRemainingRadians() < ACCEPTABLE_ACCURACY ){
+
+                    // TODO: 09/04/2019 save the bullet information so we can track which bullet missed which target.
+                    Bullet bullet = setFireBullet( Math.min( getEnergy(), Rules.MAX_BULLET_POWER ) );
+                    beginScanPhase();
+                }
 
                 /* Lock the scanner to the target.
                  * Aim the gun to the targets predicted position.
