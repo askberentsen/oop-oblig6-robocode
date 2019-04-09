@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-// TODO: 08/04/2019 does not yet account for enemies killing other enemies. Call disengage(String) when the enemy cannot be found.
-
 /**
  * The main robot of the project.
  * @author Gruppe 4.
@@ -55,6 +53,10 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private ArrayList<String> scannedRobotsPerTick = new ArrayList<>();
 
+    /**
+     * A list of names of the robots scanned during the scanning phase.
+     * @see RadarStatus#SCANNING
+     */
     private ArrayList<String> scannedRobotsDuringScanPhase = new ArrayList<>();
 
     /**
@@ -400,7 +402,8 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
-     * {@inheritDoc}
+     * This method is called when this robot kills another.
+     * Removes the killed robot from the logs and disengages if the killed enemy is the target.
      */
     @Override
     public void onRobotDeath( RobotDeathEvent e ) {
