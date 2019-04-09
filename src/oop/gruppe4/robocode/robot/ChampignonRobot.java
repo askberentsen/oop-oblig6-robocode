@@ -325,6 +325,10 @@ public class ChampignonRobot extends AdvancedRobot {
         scannedRobotsPerTick.clear();
     }
 
+    public void updateMovement() {
+
+    }
+
     /**
      * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
      * Uses finite states to decide what actions to perform.
@@ -408,6 +412,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#SCANNING
      */
     private void beginScanPhase() {
+        SetBodyColor(Color.Green);
         System.out.println("SCANNING...");
         status = RadarStatus.SCANNING;
 
@@ -425,6 +430,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#TARGETING
      */
     private void beginTargetPhase() {
+        SetBodyColor(Color.Blue);
         System.out.println("TARGETING");
         status = RadarStatus.TARGETING;
 
@@ -446,6 +452,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#ENGAGING
      */
     private void beginEngagePhase() {
+        SetBodyColor(Color.Red);
         System.out.println("ENGAGING");
         status = RadarStatus.ENGAGING;
 
