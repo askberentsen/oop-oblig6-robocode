@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-// TODO: 08/04/2019 does not yet account for enemies killing other enemies. Call disengage(String) when the enemy cannot be found. 
+// TODO: 08/04/2019 does not yet account for enemies killing other enemies. Call disengage(String) when the enemy cannot be found.
 
 /**
  * The main robot of the project.
@@ -22,7 +22,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * The state of the scanner.
      * @see RadarStatus
      */
-    private RadarStatus status;
+    private RadarStatus status = RadarStatus.SCANNING;
 
     /**
      * The history of the targets.
@@ -45,50 +45,20 @@ public class ChampignonRobot extends AdvancedRobot {
     private String targetName;
 
     /**
-     * A timer to ensure the robot doesn't get stuck on a wall.
-     */
-    private double wallHitCooldown = 0;
-
-    /**
-     * The direction to move in.
-     */
-    private int moveDirection = 1;
-
-    /**
-     * The velocity to move in.
-     */
-    private double velocity = 8;
-
-    /**
-     * A counter to ensure the robot has sufficient data about an enemy before trying to engage.
-     */
-    private double analyzingDuration = 0;
-
-    /**
      * Main method of {@code this}.
-     * Initializes {@code this}.
      */
     @Override
     public void run() {
+        /* We want to know whether a robot has been scanned or not for every tick.
+         * ScannedRobotEvent is set to a higher priority than StatusEvent, so that
+         * we can check if a target has been scanned. */
+        super.setEventPriority("ScannedRobotEvent", 99);
+        super.setEventPriority("StatusEvent", 98);
+
         setAdjustRadarForRobotTurn( true );
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
         beginScan();
-    }
-
-    /**
-     * Update on every tick.
-     * @param e the status event.
-     */
-    @Override
-    public void onStatus( StatusEvent e ) {
-        System.out.println(status.name());
-        for( Transform virtualBullet : virtualBullets ){
-            virtualBullet.update();
-            if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
-                virtualBullets.remove( virtualBullet );
-            }
-        }
     }
 
     /**
@@ -114,7 +84,6 @@ public class ChampignonRobot extends AdvancedRobot {
         final double ROBOT_DY = ( Math.cos( e.getHeadingRadians() ) );
         final double ROBOT_VELOCITY = e.getVelocity();
         final long   TIMESTAMP = e.getTime();
-
         final double ENERGY = e.getEnergy();
 
         /* Calculate the statistics of the target. */
@@ -124,11 +93,12 @@ public class ChampignonRobot extends AdvancedRobot {
                 ROBOT_DX,
                 ROBOT_DY,
                 ROBOT_VELOCITY,
-                TIMESTAMP
+                TIMESTAMP,
+                ENERGY
         );
+
         RobotStatistics statistics = history.get( ROBOT_NAME );
-        statistics.add(targetStatistic);
-        statistics.setEnergy( ENERGY );
+        statistics.add( targetStatistic );
     }
 
     /**
@@ -178,7 +148,7 @@ public class ChampignonRobot extends AdvancedRobot {
         Vector2 predictedPosition;
 
         /* Direct interception */
-        if( targetTrajectory.getScalar() == 0.0 || targetTrajectory.subtract( targetOldTrajectory ).getScalar() < 0.5){
+        if( targetTrajectory.getScalar() == 0.0 || targetTrajectory.add( targetOldTrajectory ).getScalar() < 0.5){
             predictedPosition = targetCoordinates;
         }
         /* Linear interception. */
@@ -195,34 +165,55 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onHitWall( HitWallEvent e ) {
-        if( wallHitCooldown <= 0 ){
-            moveDirection *= -1;
-            wallHitCooldown = 2;
-        }
-        else{
-            wallHitCooldown--;
-        }
-    }
-    
-    @Override
-    public void onRobotDeath( RobotDeathEvent e ) {
-        disengage( e.getName() );
-    }
-
-    /**
      * Clears a target from the history and untargets it.
      * @param name the name of a target.
      */
     private void disengage( String name ){
-        history.remove( name );
-        if( name.equals(targetName) ){
+        //history.remove( name );
+        /*if( name.equals(targetName) ){
             targetName = null;
-        }
+        }*/
         beginScan();
+    }
+
+    /**
+     * Update on every tick.
+     * @param e the status event.
+     */
+    @Override
+    public void onStatus( StatusEvent e ) {
+
+        final long TIMESTAMP = e.getTime();
+
+        /* Virtual bullet routine. */
+        for( Transform virtualBullet : virtualBullets ){
+            virtualBullet.update();
+            if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
+                virtualBullets.remove( virtualBullet );
+            }
+        }
+
+        /* History routine. */
+        history.forEach( (name, statistics) ->{
+            // TODO: 09/04/2019 update targets that were not scanned.
+        });
+
+        /* Movement routine. */
+        // TODO: 09/04/2019 update self
+
+        /* Scanner routine. */
+        switch (status){
+            case SCANNING:
+                if (getRadarTurnRemainingRadians() < 1.5 * Math.PI) {
+                    System.out.println( String.format( "Disengaging %s: could not find target during Scanning phase.", targetName ) );
+                    disengage( targetName );
+                }
+                break;
+            case ANALYZING:
+                break;
+            case ENGAGING:
+                break;
+        }
     }
 
     /**
@@ -251,7 +242,6 @@ public class ChampignonRobot extends AdvancedRobot {
      * </p>
      * @see #aimGun()
      * @see #beginScan()
-     * @see #beginTarget()
      * @see #beginAnalyze()
      * @see #beginEngage()
      * @see RadarStatus
@@ -259,49 +249,34 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
 
+        /* Log the statistics of the scanned robot */
         logTarget(e);
 
-        final RobotStatistics.Statistic CURRENT_TARGET_STAT = history.get(targetName).getLast();
+        /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
+        final RobotStatistics STATISTICS = history.get( targetName );
+
+        final RobotStatistics.Statistic CURRENT_TARGET_STAT = STATISTICS.getLast();
+        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = STATISTICS.getPrevious();
+
+        /* Initiate virtualized bullets routine */
+        if (CURRENT_TARGET_STAT.getEnergy() - PREVIOUS_TARGET_STAT.getEnergy() < 0) {
+            virtualizeBullets(CURRENT_TARGET_STAT);
+        }
 
         Vector2 lastPosition = CURRENT_TARGET_STAT.getPosition();
-        Vector2 relativePosition = lastPosition.subtract( this.getPosition() );
+        Vector2 relativePosition = lastPosition.subtract(this.getPosition());
 
         //TODO: Does not account for if the target is no longer on the battlefield (dead).
-        switch ( status ){
+        switch (status) {
 
             /* The robot is scanning.
              * Continue to scan until the robot has scanned at least 360 degrees,
              * or if the robot has scanned the target again after having scanned 180 degrees.
              */
             case SCANNING:
-                System.out.println("Scanning... found " + e.getName() );
                 /* If the robot has completed the 360 degree scan, begin targeting */
-                if( getRadarTurnRemainingRadians() < 3 * Math.PI && e.getName().equals(targetName) ){
+                if (getRadarTurnRemainingRadians() < 3 * Math.PI && e.getName().equals(targetName)) {
                     beginAnalyze();
-                }
-                else if( getRadarTurnRemainingRadians() < 2 * Math.PI ){ //Finished scanning
-                    beginTarget();
-                }
-                break;
-
-             /* The robot is targeting.
-              * Turn radar to the targets last known position. If the target wasn't found,
-              * continue to turn until the target is found.
-              */
-            case TARGETING:
-                System.out.println( String.format("Targeting %s @ %s", targetName, lastPosition) );
-
-                if( e.getName().equals(targetName) ){
-                    beginAnalyze();
-                }
-                else {
-                    /* Aim radar on target */
-                    double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), relativePosition.getTheta() );
-
-                    /* If target moved, add 1 to turn */
-                    double secureTheta = theta >= 0.0 ? theta + 1 : theta - 1;
-
-                    setTurnRadarRightRadians( secureTheta );
                 }
                 break;
 
@@ -311,17 +286,13 @@ public class ChampignonRobot extends AdvancedRobot {
              */
             case ANALYZING:
 
-                System.out.println( "Analyzing " + e.getName() + "..." );
-                analyzingDuration++;
-
-                /* Lock radar on target. */
                 lockScanner();
 
-                aimGun();
-
-                if( analyzingDuration > 2 ){
+                if (e.getName().equals(targetName)) {
+                    aimGun();
                     beginEngage();
                 }
+
                 break;
 
             /* The robot is actively engaging the target.
@@ -329,14 +300,14 @@ public class ChampignonRobot extends AdvancedRobot {
              * When the gun is cool, shoot and start scanning again.
              */
             case ENGAGING:
-                System.out.println( String.format("Engaging %s @ %s", e.getName(), lastPosition) );
                 lockScanner();
-                aimGun();
 
-                if( getGunHeat() == 0 && getGunTurnRemaining() < 1 ) {
-                    System.out.println( String.format("Shooting %s @ %s", e.getName(), lastPosition) );
-                    setFire(3);
-                    beginScan();
+                if (e.getName().equals(targetName)) {
+                    aimGun();
+                    if (getGunHeat() == 0 && getGunTurnRemaining() < 1 && e.getDistance() < 256 ) {
+                        setFire(3);
+                        beginScan();
+                    }
                 }
                 break;
 
@@ -350,6 +321,23 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onHitByBullet( HitByBulletEvent e ) {
         targetName = e.getName();
 
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onHitWall( HitWallEvent e ) {
+        // TODO: 09/04/2019
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onRobotDeath( RobotDeathEvent e ) {
+        disengage( e.getName() );
+        history.remove( e.getName() );
     }
 
     /**
@@ -375,17 +363,8 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#ANALYZING
      */
     private void beginAnalyze() {
-        analyzingDuration = 0;
         setTurnRadarRightRadians( Double.NEGATIVE_INFINITY );
         status = RadarStatus.ANALYZING;
-    }
-
-    /**
-     * Initializes the {@code TARGETING} status.
-     * @see RadarStatus#TARGETING
-     */
-    private void beginTarget() {
-        status = RadarStatus.TARGETING;
     }
 
     /**
@@ -447,7 +426,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @param deltaTime the amount of ticks since {@code oldTrajectory} was calculated.
      * @return a coordinate to intercept.
      */
-    private Vector2 circularIntercept( Vector2 referenceFrame, Vector2 coordinates, Vector2 trajectory, Vector2 oldTrajectory, long deltaTime ){
+    private Vector2 circularIntercept( Vector2 referenceFrame, Vector2 coordinates, Vector2 trajectory, Vector2 oldTrajectory, long deltaTime ) {
 
         /* The difference in angle. */
         double angleDifference = Utility.signedAngleDifference( oldTrajectory.getTheta(), trajectory.getTheta() );
@@ -503,6 +482,14 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
+     * Virtualizes bullets so that {@code this} can avoid them.
+     * @param enemy the position, trajectory and velocity of an enemy.
+     */
+    private void virtualizeBullets( Transform enemy ){
+        // TODO: 08/04/2019
+    }
+
+    /**
      * Gets the coordinates of {@code this} robot as a {@code Vector2}.
      * @return the coordinates of {@code this}.
      */
@@ -520,12 +507,6 @@ public class ChampignonRobot extends AdvancedRobot {
          * Scan 360 degrees before moving on.
          */
         SCANNING,
-
-        /**
-         * Trying to find a specific target.
-         * Finished scanning enemies, moving scanner to a specific target.
-         */
-        TARGETING,
 
         /**
          * Analyzing a locked-on target.

@@ -12,16 +12,7 @@ import java.util.LinkedList;
  */
 public class RobotStatistics {
 
-    /**
-     * The status.
-     */
-    private boolean alive = true;
-
-    /**
-     * The amount of energy left.
-     */
-    private double energy = 100;
-
+    private boolean engagingBack = false;
     /**
      * The history of Transforms.
      */
@@ -54,36 +45,12 @@ public class RobotStatistics {
         history.add( stat );
     }
 
-    /**
-     * Sets the energy.
-     * @param energy the amount of energy left.
-     */
-    public void setEnergy( double energy ){
-        this.energy = energy;
+    public boolean isEngagingBack(){
+        return engagingBack;
     }
 
-    /**
-     * Sets the status to retired.
-     */
-    public void retire(){
-        this.alive = false;
-    }
-
-    /**
-     * Gets the energy.
-     * @return the amount of energy left.
-     */
-    public double getEnergy() {
-        return energy;
-    }
-
-    /**
-     * Checks if {@code this} is alive
-     * @return {@code true} if {@code this} is alive.
-     *         {@code false} otherwise.
-     */
-    public boolean isAlive(){
-        return alive;
+    public void setEngagingBack( boolean engagingBack ) {
+        this.engagingBack = engagingBack;
     }
 
     /**
@@ -113,9 +80,11 @@ public class RobotStatistics {
         Vector2 positionDelta = last.getPosition().subtract(previous.getPosition());
         Vector2 trajectoryDelta = last.getTrajectory().subtract(previous.getTrajectory());
         double velocityDelta = last.getVelocity() - previous.getVelocity();
-        long timeStampDelta = last.getTimeStamp() - previous.getTimeStamp();
 
-        return new Statistic( positionDelta, trajectoryDelta, velocityDelta, timeStampDelta );
+        long timeStampDelta = last.timeStamp - previous.timeStamp;
+        double energyDelta = last.energy - previous.energy;
+
+        return new Statistic( positionDelta, trajectoryDelta, velocityDelta, timeStampDelta, energyDelta );
     }
 
     public Statistic getPrevious(){
@@ -136,18 +105,65 @@ public class RobotStatistics {
         return history.get( index );
     }
 
+    /**
+     * Statistics of a robot.
+     */
     public static class Statistic extends Transform {
+
+        /**
+         * A timestamp.
+         */
         private long timeStamp;
-        public Statistic( Vector2 position, Vector2 trajectory, double velocity, long timeStamp ){
+
+        /**
+         * The energy left.
+         */
+        private double energy;
+
+        /**
+         * Class constructor.
+         * @param position the coordinates of this logging.
+         * @param trajectory the trajectory of this logging.
+         * @param velocity the velocity of this logging.
+         * @param timeStamp the timestamp of this logging.
+         * @param energy the energy of this logging.
+         */
+        public Statistic( Vector2 position, Vector2 trajectory, double velocity, long timeStamp, double energy ){
             super( position, trajectory, velocity);
             this.timeStamp = timeStamp;
+            this.energy = energy;
         }
-        public Statistic( double x, double y, double dx, double dy, double velocity, long timeStamp){
+
+        /**
+         * Class constructor.
+         * @param x the x coordinate of this logging.
+         * @param y the y coordinate of this logging.
+         * @param dx the x trajectory of this logging.
+         * @param dy the y trajectory of this logging.
+         * @param velocity the velocity of this logging.
+         * @param timeStamp the timestamp of this logging.
+         * @param energy the energy of this logging.
+         */
+        public Statistic( double x, double y, double dx, double dy, double velocity, long timeStamp, double energy ){
             super(x,y,dx,dy,velocity);
             this.timeStamp = timeStamp;
+            this.energy = energy;
         }
+
+        /**
+         * Gets the timestamp.
+         * @return a timestamp.
+         */
         public long getTimeStamp(){
             return timeStamp;
+        }
+
+        /**
+         * Gets the energy.
+         * @return the amount of energy left.
+         */
+        public double getEnergy() {
+            return energy;
         }
 
         public String toString(){
