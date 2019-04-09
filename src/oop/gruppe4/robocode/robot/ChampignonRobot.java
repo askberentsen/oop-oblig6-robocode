@@ -121,7 +121,21 @@ public class ChampignonRobot extends AdvancedRobot {
      * Flips the rotation of the scanner.
      */
     private void lockScanner() {
-        // TODO: 09/04/2019 Scanner should sweep back and forth between two angles.
+
+        final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
+        final double UNCERTAINTY_FACTOR = 0.75;
+        final double DEVIATION = Rules.RADAR_TURN_RATE_RADIANS * UNCERTAINTY_FACTOR;
+        final double LOWER_BOUNDS = ANGLE_TO_TARGET - (DEVIATION/2);
+        final double UPPER_BOUNDS = ANGLE_TO_TARGET + (DEVIATION/2);
+
+        /* The angle to the lower bounds. */
+        final double ALPHA = Utility.signedAngleDifference( getRadarHeadingRadians(), LOWER_BOUNDS );
+
+        /* The angle to the upper bounds. */
+        final double BETA = Utility.signedAngleDifference( getRadarHeadingRadians(), UPPER_BOUNDS );
+
+        /* Set the scanner to either ALPHA or BETA, whichever has the biggest magnitude. */
+        setTurnRadarRightRadians( Math.abs( ALPHA ) > Math.abs( BETA ) ? ALPHA : BETA );
     }
 
     /**
@@ -289,20 +303,8 @@ public class ChampignonRobot extends AdvancedRobot {
                 if( !scannedRobotsPerTick.contains(targetName) ){
                     System.out.println("Did not find target this tick! : ENGAGING");
                 }
-                final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
-                final double UNCERTAINTY_FACTOR = 0.75;
-                final double DEVIATION = Rules.RADAR_TURN_RATE_RADIANS * UNCERTAINTY_FACTOR;
-                final double LOWER_BOUNDS = ANGLE_TO_TARGET - (DEVIATION/2);
-                final double UPPER_BOUNDS = ANGLE_TO_TARGET + (DEVIATION/2);
 
-                /* The angle to the lower bounds. */
-                final double ALPHA = Utility.signedAngleDifference( getRadarHeadingRadians(), LOWER_BOUNDS );
-
-                /* The angle to the upper bounds. */
-                final double BETA = Utility.signedAngleDifference( getRadarHeadingRadians(), UPPER_BOUNDS );
-
-                /* Set the scanner to either ALPHA or BETA, whichever has the biggest magnitude. */
-                setTurnRadarRightRadians( Math.abs( ALPHA ) > Math.abs( BETA ) ? ALPHA : BETA );
+                lockScanner();
 
                 aimGun();
 
