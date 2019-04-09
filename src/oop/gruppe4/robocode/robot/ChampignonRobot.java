@@ -227,7 +227,7 @@ public class ChampignonRobot extends AdvancedRobot {
                     //finished scanning
 
                     /* Disengage all enemies that were not found during the scan phase. */
-                    history.forEach( (name, statistics)->{
+                    history.forEach( (name, statistics) -> {
                         if( !scannedRobotsDuringScanPhase.contains(name) ){
                             statistics.setActive( false );
                         }
@@ -249,6 +249,7 @@ public class ChampignonRobot extends AdvancedRobot {
                     beginEngagePhase();
                 }
                 else if( getRadarTurnRemainingRadians() == 0.0 ){
+                    //enemy was not where expected.
                     disengage();
                 }
                 /* Aim the scanner to the targets last known position.
@@ -381,32 +382,52 @@ public class ChampignonRobot extends AdvancedRobot {
     private void beginScanPhase() {
         System.out.println("SCANNING...");
         status = RadarStatus.SCANNING;
+
         /* Scan 720 degrees in case target has moved. */
-        setTurnRadarRightRadians( 2 * Math.PI );
+        final double THETA = Math.PI * 2.0;
+        setTurnRadarRightRadians( THETA );
     }
 
     /**
      * Initializes the {@code TARGETING} phase.
+     * Rotate the scanner to the targets expected position.
+     * Intentionally overshoots based on an uncertainty factor to ensure the target will most likely
+     * be found. If the target is not found during this phase, we can confidently disengage the target.
+     * @see #onStatus(StatusEvent)
      * @see RadarStatus#TARGETING
      */
     private void beginTargetPhase() {
-        System.out.println("TARGETING " + targetName);
-        Vector2 position = getTargetStatistics().getPosition().subtract( this.getPosition() );
-        double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), position.getTheta() );
-        setTurnRadarRightRadians( theta >= 0.0 ? Math.PI : -Math.PI );
+        System.out.println("TARGETING");
         status = RadarStatus.TARGETING;
+
+        /* Calculate the angle to move the radar. */
+        final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
+        final double ANGULAR_DIFFERENCE = Utility.signedAngleDifference( getRadarHeadingRadians(), RELATIVE_POSITION.getTheta() );
+        final double UNCERTAINTY_FACTOR = 1.5;
+        final int    SIGN = ANGULAR_DIFFERENCE >= 0.0 ? 1 : -1;
+        final double THETA = Math.PI * SIGN * UNCERTAINTY_FACTOR;
+
+        setTurnRadarRightRadians( THETA );
     }
 
     /**
      * Initializes the {@code ENGAGING} phase.
+     * Rotate the scanner to overshoot the targets expected position.
+     * When the scanner overshoots the target, it will most likely produce a {@code ScannedRobotEvent}.
+     * @see #onStatus(StatusEvent)
      * @see RadarStatus#ENGAGING
      */
     private void beginEngagePhase() {
-        System.out.println("ENGAGING " + targetName);
-        Vector2 position = getTargetStatistics().getPosition().subtract( this.getPosition() );
-        double theta = Utility.signedAngleDifference( getRadarHeadingRadians(), position.getTheta() );
-        setTurnRadarRightRadians( theta * 1.1 );
+        System.out.println("ENGAGING");
         status = RadarStatus.ENGAGING;
+
+        /* Calculate the angle to move the radar. */
+        final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
+        final double ANGULAR_DIFFERENCE = Utility.signedAngleDifference( getRadarHeadingRadians(), RELATIVE_POSITION.getTheta() );
+        final double UNCERTAINTY_FACTOR = 1.1;
+        final double THETA = ANGULAR_DIFFERENCE * UNCERTAINTY_FACTOR;
+
+        setTurnRadarRightRadians( THETA );
     }
 
     /**
