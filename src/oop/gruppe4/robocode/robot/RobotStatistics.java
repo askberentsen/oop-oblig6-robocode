@@ -2,6 +2,7 @@ package oop.gruppe4.robocode.robot;
 
 import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
+import oop.gruppe4.robocode.utility.Utility;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
