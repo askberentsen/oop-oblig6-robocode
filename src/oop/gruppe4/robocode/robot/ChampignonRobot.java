@@ -36,7 +36,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * The history of the targets.
      */
-    private final HashMap<String, RobotStatistics> history = new HashMap<>();
+    private final HashMap<String, RobotStatistics> STATISTICS = new HashMap<>();
 
     /**
      * A list of names of the robots scanned in one scanning sweep.
@@ -90,9 +90,9 @@ public class ChampignonRobot extends AdvancedRobot {
         if( targetName == null ) {
             targetName = ROBOT_NAME;
         }
-        if( !history.containsKey( ROBOT_NAME ) ) history.put( ROBOT_NAME, new RobotStatistics(30) );
+        if( !STATISTICS.containsKey( ROBOT_NAME ) ) STATISTICS.put( ROBOT_NAME, new RobotStatistics(30) );
 
-        RobotStatistics statistics = history.get( ROBOT_NAME );
+        RobotStatistics statistics = STATISTICS.get( ROBOT_NAME );
 
         /* If the scanned robot is alive, set to active. */
         if( statistics.isAlive() ){
@@ -169,7 +169,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void aimGun() {
 
-        final RobotStatistics TARGET_STATISTICS = history.get(targetName);
+        final RobotStatistics TARGET_STATISTICS = STATISTICS.get(targetName);
         final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
         final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
 
@@ -225,7 +225,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void disengage(){
         System.out.println(String.format("Disengaging %s: Could not find target.", targetName ));
-        history.get( targetName ).setActive( false );
+        STATISTICS.get( targetName ).setActive( false );
         pickTarget();
         beginScanPhase();
     }
@@ -239,7 +239,7 @@ public class ChampignonRobot extends AdvancedRobot {
          */
         String targetName = null;
         RobotStatistics targetStatistics = null;
-        for( Map.Entry<String,RobotStatistics> entry : history.entrySet() ) {
+        for( Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet() ) {
             final String ROBOT_NAME = entry.getKey();
             final RobotStatistics ROBOT_STATISTICS = entry.getValue();
 
@@ -313,7 +313,7 @@ public class ChampignonRobot extends AdvancedRobot {
         }
 
         /* History routine. */
-        history.forEach( (name, statistics) -> {
+        STATISTICS.forEach( (name, statistics) -> {
             /* Assume that robots that were not scanned this tick are moving linearly. */
             if( !scannedRobotsPerTick.contains( name ) && statistics.isAlive() ){
                 // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
@@ -337,7 +337,7 @@ public class ChampignonRobot extends AdvancedRobot {
                     //finished scanning
 
                     /* Disengage all enemies that were not found during the scan phase. */
-                    history.forEach( (name, statistics) -> {
+                    STATISTICS.forEach( (name, statistics) -> {
                         if( !scannedRobotsDuringScanPhase.contains(name) ){
 
                             /* If a robot that was not found during this sweep, deactivate it. */
@@ -474,10 +474,10 @@ public class ChampignonRobot extends AdvancedRobot {
         }
 
         /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
-        final RobotStatistics STATISTICS = history.get( targetName );
+        final RobotStatistics TARGET_STATISTICS = STATISTICS.get( targetName );
 
-        final RobotStatistics.Statistic CURRENT_TARGET_STAT = STATISTICS.getLast();
-        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = STATISTICS.getPrevious();
+        final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
+        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
 
         /* Initiate virtualized bullets routine */
         if (CURRENT_TARGET_STAT.getEnergy() - PREVIOUS_TARGET_STAT.getEnergy() < 0) {
@@ -492,8 +492,8 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
-        history.get(e.getName()).incrementAggression();
-        System.out.println(String.format("%s is engaging, current agression level is: %d",e.getName(),history.get(e.getName()).getAggression()));
+        STATISTICS.get(e.getName()).incrementAggression();
+        System.out.println(String.format("%s is engaging, current agression level is: %d",e.getName(),STATISTICS.get(e.getName()).getAggression()));
     }
 
     /**
@@ -512,7 +512,7 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onRobotDeath( RobotDeathEvent e ) {
         /* Disengage and clear from history. */
         if( e.getName().equals(targetName) ) disengage();
-        history.get(e.getName()).setAlive(false);
+        STATISTICS.get(e.getName()).setAlive(false);
         //history.remove( e.getName() );
     }
 
@@ -707,12 +707,12 @@ public class ChampignonRobot extends AdvancedRobot {
      * @return the statistics of the target this tick.
      */
     private RobotStatistics.Statistic getTargetStatistics(){
-        return history.get(targetName).getLast();
+        return STATISTICS.get(targetName).getLast();
     }
 
     private ArrayList<String> getAliveRobots(){
         ArrayList<String> aliveRobots = new ArrayList<>();
-        for(Map.Entry<String,RobotStatistics> entry : history.entrySet()){
+        for(Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet()){
             if( entry.getValue().isAlive() ) aliveRobots.add(entry.getKey());
         }
         return aliveRobots;
