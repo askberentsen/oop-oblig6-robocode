@@ -17,7 +17,7 @@ public class RobotStatistics {
     private boolean alive = true;
     private int misses = 0;
     private int hits = 0;
-    private int hostility = 1;
+    private int aggression = 1;
 
     /**
      * The history of Transforms.
@@ -88,6 +88,14 @@ public class RobotStatistics {
     public void setAlive(boolean alive) {
         this.alive = alive;
         this.active = alive;
+    }
+
+    public int getAggression() {
+        return aggression;
+    }
+
+    public void incrementAggression(){
+        aggression++;
     }
 
     public void predict() {

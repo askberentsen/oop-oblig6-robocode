@@ -8,6 +8,7 @@ import robocode.*;
 
 import java.awt.*;
 import java.util.*;
+import java.util.function.Predicate;
 
 
 /**
@@ -229,19 +230,68 @@ public class ChampignonRobot extends AdvancedRobot {
         beginScanPhase();
     }
 
-    private void pickTarget(){
+    private void pickTarget() {
         /* Priority for picking target:
          * Active
          * Agressive
          * Closest
          * Highest energy
          */
-        for( Map.Entry<String,RobotStatistics> entry : history.entrySet() ){
-            String robotName = entry.getKey();
-            RobotStatistics statistics = entry.getValue();
-            // TODO: 10/04/2019
-            targetName = robotName;
+        String targetName = null;
+        RobotStatistics targetStatistics = null;
+        for( Map.Entry<String,RobotStatistics> entry : history.entrySet() ) {
+            final String ROBOT_NAME = entry.getKey();
+            final RobotStatistics ROBOT_STATISTICS = entry.getValue();
+
+            /* Compare statistics */
+            if( ROBOT_STATISTICS.isAlive() ){
+
+                /* First check */
+                if( targetStatistics == null ){
+                    targetName = ROBOT_NAME;
+                    targetStatistics = ROBOT_STATISTICS;
+                    continue;
+                }
+                //boolean robotIsMoreActive = robotStatistics.isActive() && !targetStatistics.isActive();
+                final Predicate<Integer[]> PRIORITIZED_COMPARATOR = list -> {
+                    for( int n : list){
+                        if( n > 0 ) return true;
+                        else if( n < 0) return false;
+                    }
+                    return false;
+                };
+                /* Robot is active and target is inactive*/
+                final int ACTIVITY_DIFFERENCE = Boolean.compare( ROBOT_STATISTICS.isActive(), targetStatistics.isActive());
+
+                /* Robot is more agression than the target */
+                final int AGGRESSION_DIFFERENCE = Integer.compare( ROBOT_STATISTICS.getAggression(), targetStatistics.getAggression() );
+
+                /* Robot has more energy than the target */
+                final int ENERGY_DIFFERENCE = Double.compare(
+                        ROBOT_STATISTICS.getLast().getEnergy(),
+                        targetStatistics.getLast().getEnergy()
+                );
+
+                /* Robot is closer than the target */
+                final int DISTANCE_DIFFERENCE = Double.compare(
+                        targetStatistics.getLast().getPosition().subtract( this.getPosition() ).getScalar(),
+                        ROBOT_STATISTICS.getLast().getPosition().subtract( this.getPosition() ).getScalar()
+                );
+                final Integer[] LIST_OF_DIFFERENCES = new Integer[]{
+                        AGGRESSION_DIFFERENCE,
+                        ACTIVITY_DIFFERENCE,
+                        ENERGY_DIFFERENCE,
+                        DISTANCE_DIFFERENCE
+                };
+                if( PRIORITIZED_COMPARATOR.test( LIST_OF_DIFFERENCES ) ){
+                    targetName = ROBOT_NAME;
+                    targetStatistics = ROBOT_STATISTICS;
+                }
+            }
         }
+        /* Update the target-name */
+        System.out.println("picked target : " + targetName);
+        this.targetName = targetName;
     }
 
     /**
@@ -292,6 +342,7 @@ public class ChampignonRobot extends AdvancedRobot {
 
                             /* If a robot that was not found during this sweep, deactivate it. */
                             if( statistics.isActive() ) {
+                                System.out.println("did not find " + name + " this sweep, setting to inactive.");
                                 statistics.setActive(false);
                             }
                             /* If a robot was not found this sweep, and the amount of alive robots in
@@ -299,6 +350,7 @@ public class ChampignonRobot extends AdvancedRobot {
                              * alive, assume dead.
                              */
                             else if( getOthers() != getAliveRobots().size()){
+                                System.out.println("did not find " + name + " this sweep, assuming dead.");
                                 statistics.setAlive(false);
                             }
                         }
@@ -440,7 +492,8 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
-        targetName = e.getName();
+        history.get(e.getName()).incrementAggression();
+        System.out.println(String.format("%s is engaging, current agression level is: %d",e.getName(),history.get(e.getName()).getAggression()));
     }
 
     /**
