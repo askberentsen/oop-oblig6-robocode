@@ -24,6 +24,11 @@ public class ChampignonRobot extends AdvancedRobot {
     private RadarStatus status = RadarStatus.SCANNING;
 
     /**
+     * The name of the the target.
+     */
+    private String targetName;
+
+    /**
      * A counter for how many ticks the target was not found.
      */
     private int consecutiveTicksTargetNotFound = 0;
@@ -32,21 +37,6 @@ public class ChampignonRobot extends AdvancedRobot {
      * The history of the targets.
      */
     private final HashMap<String, RobotStatistics> history = new HashMap<>();
-
-    /**
-     * A list of virtual bullets.
-     * <p>
-     *     To avoid enemies the robot keeps track of virtual bullets the enemies could shoot, and
-     *     tries to avoid them.
-     * </p>
-     * @see #onStatus(StatusEvent)
-     */
-    private ArrayList<Transform> virtualBullets = new ArrayList<>();
-
-    /**
-     * The name of the the target.
-     */
-    private String targetName;
 
     /**
      * A list of names of the robots scanned in one scanning sweep.
@@ -58,6 +48,16 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#SCANNING
      */
     private ArrayList<String> scannedRobotsDuringScanPhase = new ArrayList<>();
+
+    /**
+     * A list of virtual bullets.
+     * <p>
+     *     To avoid enemies the robot keeps track of virtual bullets the enemies could shoot, and
+     *     tries to avoid them.
+     * </p>
+     * @see #onStatus(StatusEvent)
+     */
+    private ArrayList<Transform> virtualBullets = new ArrayList<>();
 
 
     /**
