@@ -10,11 +10,13 @@ import java.awt.*;
 import java.util.*;
 import java.util.function.Predicate;
 
-/* WARNING: BIG CODE-BLOCKS. SORRY! -Ask. */
+/* WARNING: BIG CODE-BLOCKS. SORRY!
+ * Cheers -Ask. */
 
 /**
  * The main robot of the project.
- * @author Gruppe 4.
+ * @author Ask Hetland Berentsen
+ * @author Magnus Måbø Nystad
  */
 public class ChampignonRobot extends AdvancedRobot {
 
@@ -903,7 +905,7 @@ public class ChampignonRobot extends AdvancedRobot {
     private Vector2 getTrajectory() {
         return new Vector2(getVelocity(),0).rotate( getHeadingRadians() );
     }
-    
+
     /**
      * Gets the latest statistics of the target. Either fresh or predicted.
      * @return the statistics of the target this update.

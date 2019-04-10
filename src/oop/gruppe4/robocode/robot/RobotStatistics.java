@@ -2,7 +2,6 @@ package oop.gruppe4.robocode.robot;
 
 import oop.gruppe4.robocode.transform.Transform;
 import oop.gruppe4.robocode.transform.Vector2;
-import oop.gruppe4.robocode.utility.Utility;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
@@ -169,7 +168,7 @@ public class RobotStatistics {
     /**
      * Gets a specific entry in the history.
      * @param index the index to fetch from.
-     * @return
+     * @return a {@code Statistic}.
      * @throws IndexOutOfBoundsException if the index is out of range
      *         ({@code index < 0 || index >= history.size()})
      * @see #history
