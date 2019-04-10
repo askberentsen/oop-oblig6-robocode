@@ -705,6 +705,10 @@ public class ChampignonRobot extends AdvancedRobot {
         System.out.println("TARGETING");
         status = RadarStatus.TARGETING;
         pickTarget();
+        if( targetName == null ){
+            beginScanPhase();
+            return;
+        }
 
         /* Calculate the angle to move the radar. */
         final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
