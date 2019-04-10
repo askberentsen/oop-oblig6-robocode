@@ -167,6 +167,48 @@ public class ChampignonRobot extends AdvancedRobot {
         setBodyColor(Color.MAGENTA);
     }
 
+    /**
+     * The main method.
+     * <p>
+     *     {@code tick()} is the method that will be called at the end of a tick.
+     * </p>
+     * <p>
+     *     At the end of a tick, the positions of the virtual bullets and unscanned robots will
+     *     be updated to a predicted position. These positions can be used when deciding where to move
+     *     and where to scan.
+     * </p>
+     * <p>
+     *     After having updated all the positions, {@code this} will decide where to move next.
+     * </p>
+     * <p>
+     *     The main logic of {@code tick()} is decided by the {@link #status}, and will react accordingly.
+     * </p>
+     * <p>
+     *     When in the {@link RadarStatus#SCANNING} phase, this method will check whether or not
+     *     the radar has completed its sweep. If it has, then it will update the statistics
+     *     of all the robots that were not found during the {@code SCANNING phase}.
+     * </p>
+     * <p>
+     *     When in the {@link RadarStatus#TARGETING} phase, this method will check whether or not
+     *     the radar has scanned the target. If it has, then move to the {@code ENGAGING} phase.
+     *     If however the target was not found, and the radar has completed its sweep, then we
+     *     can confidently disengage with the target.
+     * </p>
+     * <p>
+     *     When in the {@link RadarStatus#ENGAGING} phase, this method will check whether or not
+     *     the radar has scanned the target. If it has <em>not</em>, then count the amount of consecutive
+     *     ticks {@link #targetName} was not found. If the target has been missing for 3 or more ticks,
+     *     then we can confidently disengage. Regardless whether or not the target was found during any specific
+     *     tick, {@code tick()} will try to predict the targets position and lock the radar to an area with
+     *     some leeway. For every tick, the gun will aim towards the predicted position, and once the gun
+     *     is sufficiently accurate, it will fire a bullet.
+     *     Once the gun has fired, {@code this} begins the {@code SCANNING} phase again while waiting for the gun
+     *     to cool down.
+     * </p>
+     * <p>
+     *     At the very end of a tick, {@code SCANNED_ROBOTS_PER_TICK} will be cleared.
+     * </p>
+     */
     private void tick() {
         /* Virtual bullet routine. */
         for( Transform virtualBullet : virtualBullets ) {
@@ -191,15 +233,16 @@ public class ChampignonRobot extends AdvancedRobot {
         // TODO: 09/04/2019 update self.
 
         /* Scanner routine. */
-
         switch ( status ) {
+
+            /* Scan 360 degrees to log the transforms of every enemy.
+             * When scanner is done, aim the scanner to where the enemy was last seen.
+             * Begin targeting phase.
+             */
             case SCANNING: {
-                /* Scan 360 degrees to log the transforms of every enemy.
-                 * When scanner is done, aim the scanner to where the enemy was last seen.
-                 * Begin targeting phase.
-                 */
+
+                /* Scan completed */
                 if( getRadarTurnRemainingRadians() == 0.0 ){
-                    //finished scanning
 
                     /* Disengage all enemies that were not found during the scan phase. */
                     STATISTICS.forEach( (name, statistics) -> {
@@ -225,6 +268,16 @@ public class ChampignonRobot extends AdvancedRobot {
                 }
                 break;
             }
+
+            /* Aim the scanner to the targets last known position.
+             * If the target was not found at the last known position, continue to scan for
+             * 180 degrees.
+             * If the enemy was not found at all, disengage. -> enter Scanning phase.
+             *
+             * if the enemy was found, enter engagement phase.
+             *
+             * Aim gun to the targets predicted position based on the predicted current position ( update via history )
+             */
             case TARGETING: {
 
                 System.out.println(targetName);
@@ -238,17 +291,17 @@ public class ChampignonRobot extends AdvancedRobot {
                     //enemy was not where expected.
                     disengage();
                 }
-                /* Aim the scanner to the targets last known position.
-                 * If the target was not found at the last known position, continue to scan for
-                 * 180 degrees.
-                 * If the enemy was not found at all, disengage. -> enter Scanning phase.
-                 *
-                 * if the enemy was found, enter engagement phase.
-                 *
-                 * Aim gun to the targets predicted position based on the predicted current position ( update via history )
-                 */
+
                 break;
             }
+
+            /* Lock the scanner to the target.
+             * Aim the gun to the targets predicted position.
+             * Shoot at enemy after having scanned for at least 2 ticks, gun is cooled down, target is close enough
+             * and if the gun is aiming at the predicted position with a reasonable degree of accuracy (less than 5 pixels).
+             *
+             * If the enemy was lost for 450 degrees, disengage.
+             */
             case ENGAGING: {
                 if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
                     System.out.println( "Did not find " + targetName + " this tick" );
@@ -273,23 +326,19 @@ public class ChampignonRobot extends AdvancedRobot {
                     Bullet bullet = setFireBullet( Math.min( getEnergy(), Rules.MAX_BULLET_POWER ) );
                     beginScanPhase();
                 }
-
-                /* Lock the scanner to the target.
-                 * Aim the gun to the targets predicted position.
-                 * Shoot at enemy after having scanned for at least 2 ticks, gun is cooled down, target is close enough
-                 * and if the gun is aiming at the predicted position with a reasonable degree of accuracy (less than 5 pixels).
-                 *
-                 * If the enemy was lost for 450 degrees, disengage.
-                 */
                 break;
             }
         }
 
-        /* Reset foundTarget & scannedRobot */
+        /* Reset the counter */
         SCANNED_ROBOTS_PER_TICK.clear();
     }
 
     /* TARGET DISCRIMINATION */
+
+    /**
+     * 
+     */
     private void pickTarget() {
         String targetName = null;
         RobotStatistics targetStatistics = null;
@@ -731,15 +780,16 @@ public class ChampignonRobot extends AdvancedRobot {
         //history.remove( e.getName() );
     }
 
-    /**
-     * Update on every tick.
-     * @param e the status event.
-     */
     @Override
     public void onStatus( StatusEvent e ) {
-        if( e.getTime() < 1 ){
+        /* onStatus is called before run() has completed.
+         * Ensure that the scanning phase has started before performing any actions.
+         */
+        if( e.getTime() == 0 ){
             beginScanPhase();
         }
+
+        /* Main method. */
         tick();
     }
 
@@ -748,27 +798,6 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
      * Uses finite states to decide what actions to perform.
-     * <p>
-     *     When the robot is scanning, it will scan {@code 180 ~ 720} degrees until it has scanned all enemies or
-     *     found the target after the initial {@code 180} degrees.
-     *     If the robot finds the target again before the first 360 degrees, it will jump directly to analyze.
-           Otherwise, it will continue to turn the radar until it has found another target and will then
-     *     switch to targeting.
-     * </p>
-     * <p>
-     *     When the robot is targeting, it will rotate the scanner towards where the target was last seen. If the
-     *     target was not found at the expected position, it will continue to turn in the same direction until it does.
-     *     When the robot has found the target it will then switch to analyze.
-     * </p>
-     * <p>
-     *     When the robot is analyzing, it will keep the scanner locked on the target for 3 ticks to gather
-     *     sufficient data to make a prediction. After the 3 ticks, the robot will switch to engage.
-     * </p>
-     * <p>
-     *     When the robot is engaging, it will continue locking the scanner on the target and wait for the gun to
-     *     cool down. the robot will additionally not try to shoot if the target is too far away. After firing a shot,
-     *     the robot will initiate a scan while the gun is cooling down.
-     * </p>
      */
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
