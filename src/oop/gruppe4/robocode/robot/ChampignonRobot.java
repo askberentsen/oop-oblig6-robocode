@@ -7,8 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import robocode.*;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 
 /**
@@ -58,6 +57,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#SCANNING
      */
     private ArrayList<String> scannedRobotsDuringScanPhase = new ArrayList<>();
+
 
     /**
      * Main method of {@code this}.
@@ -121,7 +121,6 @@ public class ChampignonRobot extends AdvancedRobot {
                 ENERGY
         );
 
-        RobotStatistics statistics = history.get( ROBOT_NAME );
         statistics.add( targetStatistic );
     }
 
