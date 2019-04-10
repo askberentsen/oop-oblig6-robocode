@@ -261,7 +261,6 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see #virtualizeBullets(Transform)
      */
     private void updateVirtualBullets() {
-        // TODO: 10/04/2019
         for( Transform virtualBullet : virtualBullets ) {
             virtualBullet.update();
             if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
@@ -812,7 +811,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * TODO: 10/04/2019
      */
     public void updateMovement() {
-
+        if( Math.random() > 0.7 ) {
+            setAhead(Math.random() * 600 - 300);
+            setTurnRightRadians( Math.random() - 0.5 );
+        }
     }
 
     /**
@@ -1024,6 +1026,7 @@ public class ChampignonRobot extends AdvancedRobot {
 
     @Override
     public void onHitWall( HitWallEvent e ) {
+        setAhead(-getDistanceRemaining());
         // TODO: 09/04/2019
     }
 
