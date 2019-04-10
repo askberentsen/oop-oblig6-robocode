@@ -78,231 +78,7 @@ public class ChampignonRobot extends AdvancedRobot {
         setBodyColor(Color.MAGENTA);
     }
 
-    /**
-     * Logs the statistics of a target.
-     * @param e the target {@code ScannedRobotEvent}.
-     */
-    private void logTarget( @NotNull ScannedRobotEvent e ) {
-
-        final String ROBOT_NAME = e.getName();
-
-        /* target if e is the first scan. */
-        if( targetName == null ) {
-            targetName = ROBOT_NAME;
-        }
-        if( !STATISTICS.containsKey( ROBOT_NAME ) ) STATISTICS.put( ROBOT_NAME, new RobotStatistics(30) );
-
-        RobotStatistics statistics = STATISTICS.get( ROBOT_NAME );
-
-        /* If the scanned robot is alive, set to active. */
-        if( statistics.isAlive() ){
-            statistics.setActive(true);
-        }
-        /* Robot died this turn, updating information not necessary.  */
-        else return;
-
-        /* Calculate the absolute bearing of the target. */
-        final double ABSOLUTE_BEARING = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
-        final double ROBOT_X  = ( Math.sin( ABSOLUTE_BEARING ) * e.getDistance() ) + getX();
-        final double ROBOT_Y  = ( Math.cos( ABSOLUTE_BEARING ) * e.getDistance() ) + getY();
-        final double ROBOT_DX = ( Math.sin( e.getHeadingRadians() ) );
-        final double ROBOT_DY = ( Math.cos( e.getHeadingRadians() ) );
-        final double ROBOT_VELOCITY = e.getVelocity();
-        final long   TIMESTAMP = e.getTime();
-        final double ENERGY = e.getEnergy();
-
-        /* Calculate the statistics of the target. */
-        RobotStatistics.Statistic targetStatistic = new RobotStatistics.Statistic(
-                ROBOT_X,
-                ROBOT_Y,
-                ROBOT_DX,
-                ROBOT_DY,
-                ROBOT_VELOCITY,
-                TIMESTAMP,
-                ENERGY
-        );
-
-        statistics.add( targetStatistic );
-    }
-
-    /**
-     * Locks the scanner.
-     * Flips the rotation of the scanner.
-     */
-    private void lockScanner() {
-
-        final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
-        final double UNCERTAINTY_FACTOR = 0.75;
-        final double DEVIATION = Rules.RADAR_TURN_RATE_RADIANS * UNCERTAINTY_FACTOR;
-        final double LOWER_BOUNDS = ANGLE_TO_TARGET - (DEVIATION/2);
-        final double UPPER_BOUNDS = ANGLE_TO_TARGET + (DEVIATION/2);
-
-        /* The angle to the lower bounds. */
-        final double ALPHA = Utility.signedAngleDifference( getRadarHeadingRadians(), LOWER_BOUNDS );
-
-        /* The angle to the upper bounds. */
-        final double BETA = Utility.signedAngleDifference( getRadarHeadingRadians(), UPPER_BOUNDS );
-
-        /* Set the scanner to either ALPHA or BETA, whichever has the biggest magnitude. */
-        setTurnRadarRightRadians( Math.abs( ALPHA ) > Math.abs( BETA ) ? ALPHA : BETA );
-    }
-
-    /**
-     * Aims the gun at a target.
-     * Estimates a future position and turns the gun to that direction.
-     * <p>
-     *     If the target is not moving, or not moving a lot on average. The robot will aim towards the
-     *     targets current position.
-     * </p>
-     * <p>
-     *     If the target is moving in a straight line, the robot will intercept the target in a straight line.
-     *     {@code circularInterception()} is reliant on division by the angle, and when the angle is {@code 0},
-     *     the method cannot estimate a coordinate. {@code linearIntercept} is faster than {@code circularIntercept()}
-     *     and should be used as often as possible before it.
-     * </p>
-     * <p>
-     *     If the target is moving in a curve, the robot will assume the target will continue to move in the
-     *     same curve.
-     * </p>
-     * @see #linearIntercept(Vector2, Vector2, Vector2)
-     * @see #circularIntercept(Vector2, Vector2, Vector2, Vector2, long)
-     */
-    private void aimGun() {
-
-        final RobotStatistics TARGET_STATISTICS = STATISTICS.get(targetName);
-        final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
-        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
-
-        final Vector2 TARGET_COORDINATES = CURRENT_TARGET_STAT.getPosition();
-        final Vector2 TARGET_TRAJECTORY = CURRENT_TARGET_STAT.getTrajectory();
-        final Vector2 OLD_TARGET_TRAJECTORY = PREVIOUS_TARGET_STAT.getTrajectory();
-        long DELTA_TIME = CURRENT_TARGET_STAT.getTimeStamp() - PREVIOUS_TARGET_STAT.getTimeStamp();
-
-        final double DELTA_ANGLE = Utility.signedAngleDifference(
-                OLD_TARGET_TRAJECTORY.getTheta(),
-                TARGET_TRAJECTORY.getTheta()
-        );
-
-        Vector2 predictedPosition;
-
-        /* Direct interception */
-        if( TARGET_TRAJECTORY.getScalar() == 0.0 || TARGET_TRAJECTORY.add( OLD_TARGET_TRAJECTORY ).getScalar() < 0.5){
-            predictedPosition = TARGET_COORDINATES;
-        }
-        /* Linear interception. */
-        else if( Math.abs(DELTA_ANGLE) < 0.05 ){
-            predictedPosition = linearIntercept(
-                    this.getPosition(),
-                    TARGET_COORDINATES,
-                    TARGET_TRAJECTORY
-            );
-        }
-        /* Circular interception. */
-        else{
-            predictedPosition = circularIntercept(
-                    this.getPosition(),
-                    TARGET_COORDINATES,
-                    TARGET_TRAJECTORY,
-                    OLD_TARGET_TRAJECTORY,
-                    DELTA_TIME );
-        }
-
-        final double BOUNDS = 15.0;
-        final Vector2 RESTRICTED_PREDICTED_POSITION = new Vector2(
-            Utility.limit( predictedPosition.getX(), BOUNDS, getBattleFieldWidth() - BOUNDS ),
-            Utility.limit( predictedPosition.getY(), BOUNDS, getBattleFieldHeight() - BOUNDS )
-        );
-
-        final Vector2 RELATIVE_PREDICTED_POSITION = RESTRICTED_PREDICTED_POSITION.subtract( this.getPosition() );
-        final double ANGLE_TO_TARGET = RELATIVE_PREDICTED_POSITION.getTheta();
-
-        final double THETA = Utility.signedAngleDifference( getGunHeadingRadians(), ANGLE_TO_TARGET );
-        setTurnGunRightRadians( THETA );
-    }
-
-    /**
-     * Clears a target from the history and untargets it.
-     */
-    private void disengage(){
-        System.out.println(String.format("Disengaging %s: Could not find target.", targetName ));
-        STATISTICS.get( targetName ).setActive( false );
-        pickTarget();
-        beginScanPhase();
-    }
-
-    private void pickTarget() {
-        /* Priority for picking target:
-         * Active
-         * Agressive
-         * Closest
-         * Highest energy
-         */
-        String targetName = null;
-        RobotStatistics targetStatistics = null;
-        for( Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet() ) {
-            final String ROBOT_NAME = entry.getKey();
-            final RobotStatistics ROBOT_STATISTICS = entry.getValue();
-
-            /* Compare statistics */
-            if( ROBOT_STATISTICS.isAlive() ){
-
-                /* First check */
-                if( targetStatistics == null ){
-                    targetName = ROBOT_NAME;
-                    targetStatistics = ROBOT_STATISTICS;
-                    continue;
-                }
-                //boolean robotIsMoreActive = robotStatistics.isActive() && !targetStatistics.isActive();
-                final Predicate<Integer[]> PRIORITIZED_COMPARATOR = list -> {
-                    for( int n : list){
-                        if( n > 0 ) return true;
-                        else if( n < 0) return false;
-                    }
-                    return false;
-                };
-                /* Robot is active and target is inactive*/
-                final int ACTIVITY_DIFFERENCE = Boolean.compare( ROBOT_STATISTICS.isActive(), targetStatistics.isActive());
-
-                /* Robot is more agression than the target */
-                final int AGGRESSION_DIFFERENCE = Integer.compare( ROBOT_STATISTICS.getAggression(), targetStatistics.getAggression() );
-
-                /* Robot has more energy than the target */
-                final int ENERGY_DIFFERENCE = Double.compare(
-                        ROBOT_STATISTICS.getLast().getEnergy(),
-                        targetStatistics.getLast().getEnergy()
-                );
-
-                /* Robot is closer than the target */
-                final int DISTANCE_DIFFERENCE = Double.compare(
-                        targetStatistics.getLast().getPosition().subtract( this.getPosition() ).getScalar(),
-                        ROBOT_STATISTICS.getLast().getPosition().subtract( this.getPosition() ).getScalar()
-                );
-                final Integer[] LIST_OF_DIFFERENCES = new Integer[]{
-                        AGGRESSION_DIFFERENCE,
-                        ACTIVITY_DIFFERENCE,
-                        ENERGY_DIFFERENCE,
-                        DISTANCE_DIFFERENCE
-                };
-                if( PRIORITIZED_COMPARATOR.test( LIST_OF_DIFFERENCES ) ){
-                    targetName = ROBOT_NAME;
-                    targetStatistics = ROBOT_STATISTICS;
-                }
-            }
-        }
-        /* Update the target-name */
-        System.out.println("picked target : " + targetName);
-        this.targetName = targetName;
-    }
-
-    /**
-     * Update on every tick.
-     * @param e the status event.
-     */
-    @Override
-    public void onStatus( StatusEvent e ) {
-
-        final long TIMESTAMP = e.getTime();
-
+    private void tick() {
         /* Virtual bullet routine. */
         for( Transform virtualBullet : virtualBullets ) {
             // TODO: 09/04/2019 virtual bullets routine.
@@ -431,145 +207,223 @@ public class ChampignonRobot extends AdvancedRobot {
         scannedRobotsPerTick.clear();
     }
 
-    public void updateMovement() {
+    /* TARGET DISCRIMINATION */
+    private void pickTarget() {
+        /* Priority for picking target:
+         * Active
+         * Agressive
+         * Closest
+         * Highest energy
+         */
+        String targetName = null;
+        RobotStatistics targetStatistics = null;
+        for( Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet() ) {
+            final String ROBOT_NAME = entry.getKey();
+            final RobotStatistics ROBOT_STATISTICS = entry.getValue();
 
+            /* Compare statistics */
+            if( ROBOT_STATISTICS.isAlive() ){
+
+                /* First check */
+                if( targetStatistics == null ){
+                    targetName = ROBOT_NAME;
+                    targetStatistics = ROBOT_STATISTICS;
+                    continue;
+                }
+                //boolean robotIsMoreActive = robotStatistics.isActive() && !targetStatistics.isActive();
+                final Predicate<Integer[]> PRIORITIZED_COMPARATOR = list -> {
+                    for( int n : list){
+                        if( n > 0 ) return true;
+                        else if( n < 0) return false;
+                    }
+                    return false;
+                };
+                /* Robot is active and target is inactive*/
+                final int ACTIVITY_DIFFERENCE = Boolean.compare( ROBOT_STATISTICS.isActive(), targetStatistics.isActive());
+
+                /* Robot is more agression than the target */
+                final int AGGRESSION_DIFFERENCE = Integer.compare( ROBOT_STATISTICS.getAggression(), targetStatistics.getAggression() );
+
+                /* Robot has more energy than the target */
+                final int ENERGY_DIFFERENCE = Double.compare(
+                        ROBOT_STATISTICS.getLast().getEnergy(),
+                        targetStatistics.getLast().getEnergy()
+                );
+
+                /* Robot is closer than the target */
+                final int DISTANCE_DIFFERENCE = Double.compare(
+                        targetStatistics.getLast().getPosition().subtract( this.getPosition() ).getScalar(),
+                        ROBOT_STATISTICS.getLast().getPosition().subtract( this.getPosition() ).getScalar()
+                );
+                final Integer[] LIST_OF_DIFFERENCES = new Integer[]{
+                        AGGRESSION_DIFFERENCE,
+                        ACTIVITY_DIFFERENCE,
+                        ENERGY_DIFFERENCE,
+                        DISTANCE_DIFFERENCE
+                };
+                if( PRIORITIZED_COMPARATOR.test( LIST_OF_DIFFERENCES ) ){
+                    targetName = ROBOT_NAME;
+                    targetStatistics = ROBOT_STATISTICS;
+                }
+            }
+        }
+        /* Update the target-name */
+        System.out.println("picked target : " + targetName);
+        this.targetName = targetName;
     }
 
     /**
-     * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
-     * Uses finite states to decide what actions to perform.
-     * <p>
-     *     When the robot is scanning, it will scan {@code 180 ~ 720} degrees until it has scanned all enemies or
-     *     found the target after the initial {@code 180} degrees.
-     *     If the robot finds the target again before the first 360 degrees, it will jump directly to analyze.
-           Otherwise, it will continue to turn the radar until it has found another target and will then
-     *     switch to targeting.
-     * </p>
-     * <p>
-     *     When the robot is targeting, it will rotate the scanner towards where the target was last seen. If the
-     *     target was not found at the expected position, it will continue to turn in the same direction until it does.
-     *     When the robot has found the target it will then switch to analyze.
-     * </p>
-     * <p>
-     *     When the robot is analyzing, it will keep the scanner locked on the target for 3 ticks to gather
-     *     sufficient data to make a prediction. After the 3 ticks, the robot will switch to engage.
-     * </p>
-     * <p>
-     *     When the robot is engaging, it will continue locking the scanner on the target and wait for the gun to
-     *     cool down. the robot will additionally not try to shoot if the target is too far away. After firing a shot,
-     *     the robot will initiate a scan while the gun is cooling down.
-     * </p>
+     * Clears a target from the history and untargets it.
      */
-    @Override
-    public void onScannedRobot( ScannedRobotEvent e ) {
+    private void disengage() {
+        System.out.println(String.format("Disengaging %s: Could not find target.", targetName ));
+        STATISTICS.get( targetName ).setActive( false );
+        pickTarget();
+        beginScanPhase();
+    }
 
-        /* Log the statistics of the scanned robot. */
-        logTarget(e);
+    /**
+     * Logs the statistics of a target.
+     * @param e the target {@code ScannedRobotEvent}.
+     */
+    private void logTarget( @NotNull ScannedRobotEvent e ) {
+
         final String ROBOT_NAME = e.getName();
-        /* Add robot to the list of robots found this sweep. */
-        scannedRobotsPerTick.add( ROBOT_NAME );
 
-        if( status == RadarStatus.SCANNING && !scannedRobotsDuringScanPhase.contains(ROBOT_NAME) ){
-            scannedRobotsDuringScanPhase.add(ROBOT_NAME);
+        /* target if e is the first scan. */
+        if( targetName == null ) {
+            targetName = ROBOT_NAME;
         }
+        if( !STATISTICS.containsKey( ROBOT_NAME ) ) STATISTICS.put( ROBOT_NAME, new RobotStatistics(30) );
 
-        /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
-        final RobotStatistics TARGET_STATISTICS = STATISTICS.get( targetName );
+        RobotStatistics statistics = STATISTICS.get( ROBOT_NAME );
 
+        /* If the scanned robot is alive, set to active. */
+        if( statistics.isAlive() ){
+            statistics.setActive(true);
+        }
+        /* Robot died this turn, updating information not necessary.  */
+        else return;
+
+        /* Calculate the absolute bearing of the target. */
+        final double ABSOLUTE_BEARING = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
+        final double ROBOT_X  = ( Math.sin( ABSOLUTE_BEARING ) * e.getDistance() ) + getX();
+        final double ROBOT_Y  = ( Math.cos( ABSOLUTE_BEARING ) * e.getDistance() ) + getY();
+        final double ROBOT_DX = ( Math.sin( e.getHeadingRadians() ) );
+        final double ROBOT_DY = ( Math.cos( e.getHeadingRadians() ) );
+        final double ROBOT_VELOCITY = e.getVelocity();
+        final long   TIMESTAMP = e.getTime();
+        final double ENERGY = e.getEnergy();
+
+        /* Calculate the statistics of the target. */
+        RobotStatistics.Statistic targetStatistic = new RobotStatistics.Statistic(
+                ROBOT_X,
+                ROBOT_Y,
+                ROBOT_DX,
+                ROBOT_DY,
+                ROBOT_VELOCITY,
+                TIMESTAMP,
+                ENERGY
+        );
+
+        statistics.add( targetStatistic );
+    }
+
+    /* ENGAGEMENT METHODS */
+
+    /**
+     * Aims the gun at a target.
+     * Estimates a future position and turns the gun to that direction.
+     * <p>
+     *     If the target is not moving, or not moving a lot on average. The robot will aim towards the
+     *     targets current position.
+     * </p>
+     * <p>
+     *     If the target is moving in a straight line, the robot will intercept the target in a straight line.
+     *     {@code circularInterception()} is reliant on division by the angle, and when the angle is {@code 0},
+     *     the method cannot estimate a coordinate. {@code linearIntercept} is faster than {@code circularIntercept()}
+     *     and should be used as often as possible before it.
+     * </p>
+     * <p>
+     *     If the target is moving in a curve, the robot will assume the target will continue to move in the
+     *     same curve.
+     * </p>
+     * @see #linearIntercept(Vector2, Vector2, Vector2)
+     * @see #circularIntercept(Vector2, Vector2, Vector2, Vector2, long)
+     */
+    private void aimGun() {
+
+        final RobotStatistics TARGET_STATISTICS = STATISTICS.get(targetName);
         final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
         final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
 
-        /* Initiate virtualized bullets routine */
-        if (CURRENT_TARGET_STAT.getEnergy() - PREVIOUS_TARGET_STAT.getEnergy() < 0) {
+        final Vector2 TARGET_COORDINATES = CURRENT_TARGET_STAT.getPosition();
+        final Vector2 TARGET_TRAJECTORY = CURRENT_TARGET_STAT.getTrajectory();
+        final Vector2 OLD_TARGET_TRAJECTORY = PREVIOUS_TARGET_STAT.getTrajectory();
+        long DELTA_TIME = CURRENT_TARGET_STAT.getTimeStamp() - PREVIOUS_TARGET_STAT.getTimeStamp();
 
-            /* Virtual bullets routine. */
-            virtualizeBullets(CURRENT_TARGET_STAT);
+        final double DELTA_ANGLE = Utility.signedAngleDifference(
+                OLD_TARGET_TRAJECTORY.getTheta(),
+                TARGET_TRAJECTORY.getTheta()
+        );
+
+        Vector2 predictedPosition;
+
+        /* Direct interception */
+        if( TARGET_TRAJECTORY.getScalar() == 0.0 || TARGET_TRAJECTORY.add( OLD_TARGET_TRAJECTORY ).getScalar() < 0.5){
+            predictedPosition = TARGET_COORDINATES;
         }
+        /* Linear interception. */
+        else if( Math.abs(DELTA_ANGLE) < 0.05 ){
+            predictedPosition = linearIntercept(
+                    this.getPosition(),
+                    TARGET_COORDINATES,
+                    TARGET_TRAJECTORY
+            );
+        }
+        /* Circular interception. */
+        else{
+            predictedPosition = circularIntercept(
+                    this.getPosition(),
+                    TARGET_COORDINATES,
+                    TARGET_TRAJECTORY,
+                    OLD_TARGET_TRAJECTORY,
+                    DELTA_TIME );
+        }
+
+        final double BOUNDS = 15.0;
+        final Vector2 RESTRICTED_PREDICTED_POSITION = new Vector2(
+                Utility.limit( predictedPosition.getX(), BOUNDS, getBattleFieldWidth() - BOUNDS ),
+                Utility.limit( predictedPosition.getY(), BOUNDS, getBattleFieldHeight() - BOUNDS )
+        );
+
+        final Vector2 RELATIVE_PREDICTED_POSITION = RESTRICTED_PREDICTED_POSITION.subtract( this.getPosition() );
+        final double ANGLE_TO_TARGET = RELATIVE_PREDICTED_POSITION.getTheta();
+
+        final double THETA = Utility.signedAngleDifference( getGunHeadingRadians(), ANGLE_TO_TARGET );
+        setTurnGunRightRadians( THETA );
     }
 
     /**
-     * {@inheritDoc}
+     * Locks the scanner.
+     * Flips the rotation of the scanner.
      */
-    @Override
-    public void onHitByBullet( HitByBulletEvent e ) {
-        STATISTICS.get(e.getName()).incrementAggression();
-        System.out.println(String.format("%s is engaging, current agression level is: %d",e.getName(),STATISTICS.get(e.getName()).getAggression()));
-    }
+    private void lockScanner() {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onHitWall( HitWallEvent e ) {
-        // TODO: 09/04/2019
-    }
+        final double ANGLE_TO_TARGET = getTargetStatistics().getPosition().subtract( this.getPosition() ).getTheta();
+        final double UNCERTAINTY_FACTOR = 0.75;
+        final double DEVIATION = Rules.RADAR_TURN_RATE_RADIANS * UNCERTAINTY_FACTOR;
+        final double LOWER_BOUNDS = ANGLE_TO_TARGET - (DEVIATION/2);
+        final double UPPER_BOUNDS = ANGLE_TO_TARGET + (DEVIATION/2);
 
-    /**
-     * This method is called when this robot kills another.
-     * Removes the killed robot from the logs and disengages if the killed enemy is the target.
-     */
-    @Override
-    public void onRobotDeath( RobotDeathEvent e ) {
-        /* Disengage and clear from history. */
-        if( e.getName().equals(targetName) ) disengage();
-        STATISTICS.get(e.getName()).setAlive(false);
-        //history.remove( e.getName() );
-    }
+        /* The angle to the lower bounds. */
+        final double ALPHA = Utility.signedAngleDifference( getRadarHeadingRadians(), LOWER_BOUNDS );
 
-    /**
-     * Initializes the {@code SCANNING} phase.
-     * @see RadarStatus#SCANNING
-     */
-    private void beginScanPhase() {
-        System.out.println("SCANNING...");
-        status = RadarStatus.SCANNING;
+        /* The angle to the upper bounds. */
+        final double BETA = Utility.signedAngleDifference( getRadarHeadingRadians(), UPPER_BOUNDS );
 
-        /* Scan 720 degrees in case target has moved. */
-        final double THETA = Math.PI * 2.0;
-        setTurnRadarRightRadians( THETA );
-    }
-
-    /**
-     * Initializes the {@code TARGETING} phase.
-     * Rotate the scanner to the targets expected position.
-     * Intentionally overshoots based on an uncertainty factor to ensure the target will most likely
-     * be found. If the target is not found during this phase, we can confidently disengage the target.
-     * @see #onStatus(StatusEvent)
-     * @see RadarStatus#TARGETING
-     */
-    private void beginTargetPhase() {
-        System.out.println("TARGETING");
-        status = RadarStatus.TARGETING;
-        pickTarget();
-
-        /* Calculate the angle to move the radar. */
-        final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
-        final double ANGULAR_DIFFERENCE = Utility.signedAngleDifference( getRadarHeadingRadians(), RELATIVE_POSITION.getTheta() );
-        final double UNCERTAINTY_FACTOR = 1.5;
-        final int    SIGN = ANGULAR_DIFFERENCE >= 0.0 ? 1 : -1;
-        final double THETA = Math.PI * SIGN * UNCERTAINTY_FACTOR;
-
-        setTurnRadarRightRadians( THETA );
-    }
-
-    /**
-     * Initializes the {@code ENGAGING} phase.
-     * Rotate the scanner to overshoot the targets expected position.
-     * When the scanner overshoots the target, it will most likely produce a {@code ScannedRobotEvent}.
-     * @see #onStatus(StatusEvent)
-     * @see RadarStatus#ENGAGING
-     */
-    private void beginEngagePhase() {
-        System.out.println("ENGAGING");
-        status = RadarStatus.ENGAGING;
-
-        /* Calculate the angle to move the radar. */
-        final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
-        final double ANGULAR_DIFFERENCE = Utility.signedAngleDifference( getRadarHeadingRadians(), RELATIVE_POSITION.getTheta() );
-        final double UNCERTAINTY_FACTOR = 1.1;
-        final double THETA = ANGULAR_DIFFERENCE * UNCERTAINTY_FACTOR;
-
-        setTurnRadarRightRadians( THETA );
+        /* Set the scanner to either ALPHA or BETA, whichever has the biggest magnitude. */
+        setTurnRadarRightRadians( Math.abs( ALPHA ) > Math.abs( BETA ) ? ALPHA : BETA );
     }
 
     /**
@@ -686,13 +540,82 @@ public class ChampignonRobot extends AdvancedRobot {
         return nextPosition;
     }
 
+    /* MOVEMENT METHODS */
+
+    /**
+     * TODO: 10/04/2019
+     */
+    public void updateMovement() {
+
+    }
+
     /**
      * Virtualizes bullets so that {@code this} can avoid them.
      * @param enemy the position, trajectory and velocity of an enemy.
      */
-    private void virtualizeBullets( Transform enemy ){
+    private void virtualizeBullets( Transform enemy ) {
         // TODO: 08/04/2019
     }
+
+    /* STATUS MANAMGEMENT */
+
+    /**
+     * Initializes the {@code SCANNING} phase.
+     * @see RadarStatus#SCANNING
+     */
+    private void beginScanPhase() {
+        System.out.println("SCANNING...");
+        status = RadarStatus.SCANNING;
+
+        /* Scan 720 degrees in case target has moved. */
+        final double THETA = Math.PI * 2.0;
+        setTurnRadarRightRadians( THETA );
+    }
+
+    /**
+     * Initializes the {@code TARGETING} phase.
+     * Rotate the scanner to the targets expected position.
+     * Intentionally overshoots based on an uncertainty factor to ensure the target will most likely
+     * be found. If the target is not found during this phase, we can confidently disengage the target.
+     * @see #onStatus(StatusEvent)
+     * @see RadarStatus#TARGETING
+     */
+    private void beginTargetPhase() {
+        System.out.println("TARGETING");
+        status = RadarStatus.TARGETING;
+        pickTarget();
+
+        /* Calculate the angle to move the radar. */
+        final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
+        final double ANGULAR_DIFFERENCE = Utility.signedAngleDifference( getRadarHeadingRadians(), RELATIVE_POSITION.getTheta() );
+        final double UNCERTAINTY_FACTOR = 1.5;
+        final int    SIGN = ANGULAR_DIFFERENCE >= 0.0 ? 1 : -1;
+        final double THETA = Math.PI * SIGN * UNCERTAINTY_FACTOR;
+
+        setTurnRadarRightRadians( THETA );
+    }
+
+    /**
+     * Initializes the {@code ENGAGING} phase.
+     * Rotate the scanner to overshoot the targets expected position.
+     * When the scanner overshoots the target, it will most likely produce a {@code ScannedRobotEvent}.
+     * @see #onStatus(StatusEvent)
+     * @see RadarStatus#ENGAGING
+     */
+    private void beginEngagePhase() {
+        System.out.println("ENGAGING");
+        status = RadarStatus.ENGAGING;
+
+        /* Calculate the angle to move the radar. */
+        final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
+        final double ANGULAR_DIFFERENCE = Utility.signedAngleDifference( getRadarHeadingRadians(), RELATIVE_POSITION.getTheta() );
+        final double UNCERTAINTY_FACTOR = 1.1;
+        final double THETA = ANGULAR_DIFFERENCE * UNCERTAINTY_FACTOR;
+
+        setTurnRadarRightRadians( THETA );
+    }
+
+    /* GET METHODS */
 
     /**
      * Gets the coordinates of {@code this} robot as a {@code Vector2}.
@@ -706,16 +629,114 @@ public class ChampignonRobot extends AdvancedRobot {
      * Gets the latest statistics of the target. Either fresh or predicted.
      * @return the statistics of the target this tick.
      */
-    private RobotStatistics.Statistic getTargetStatistics(){
+    private RobotStatistics.Statistic getTargetStatistics() {
         return STATISTICS.get(targetName).getLast();
     }
 
-    private ArrayList<String> getAliveRobots(){
+    /**
+     *
+     * @return
+     */
+    private ArrayList<String> getAliveRobots() {
         ArrayList<String> aliveRobots = new ArrayList<>();
         for(Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet()){
             if( entry.getValue().isAlive() ) aliveRobots.add(entry.getKey());
         }
         return aliveRobots;
+    }
+
+    /* EVENT HANDLERS */
+
+    /**
+     * This method is called when this robot kills another.
+     * Removes the killed robot from the logs and disengages if the killed enemy is the target.
+     */
+    @Override
+    public void onRobotDeath( RobotDeathEvent e ) {
+        /* Disengage and clear from history. */
+        if( e.getName().equals(targetName) ) disengage();
+        STATISTICS.get(e.getName()).setAlive(false);
+        //history.remove( e.getName() );
+    }
+
+    /**
+     * Update on every tick.
+     * @param e the status event.
+     */
+    @Override
+    public void onStatus( StatusEvent e ) {
+        tick();
+    }
+
+
+
+    /**
+     * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
+     * Uses finite states to decide what actions to perform.
+     * <p>
+     *     When the robot is scanning, it will scan {@code 180 ~ 720} degrees until it has scanned all enemies or
+     *     found the target after the initial {@code 180} degrees.
+     *     If the robot finds the target again before the first 360 degrees, it will jump directly to analyze.
+           Otherwise, it will continue to turn the radar until it has found another target and will then
+     *     switch to targeting.
+     * </p>
+     * <p>
+     *     When the robot is targeting, it will rotate the scanner towards where the target was last seen. If the
+     *     target was not found at the expected position, it will continue to turn in the same direction until it does.
+     *     When the robot has found the target it will then switch to analyze.
+     * </p>
+     * <p>
+     *     When the robot is analyzing, it will keep the scanner locked on the target for 3 ticks to gather
+     *     sufficient data to make a prediction. After the 3 ticks, the robot will switch to engage.
+     * </p>
+     * <p>
+     *     When the robot is engaging, it will continue locking the scanner on the target and wait for the gun to
+     *     cool down. the robot will additionally not try to shoot if the target is too far away. After firing a shot,
+     *     the robot will initiate a scan while the gun is cooling down.
+     * </p>
+     */
+    @Override
+    public void onScannedRobot( ScannedRobotEvent e ) {
+
+        /* Log the statistics of the scanned robot. */
+        logTarget(e);
+        final String ROBOT_NAME = e.getName();
+        /* Add robot to the list of robots found this sweep. */
+        scannedRobotsPerTick.add( ROBOT_NAME );
+
+        if( status == RadarStatus.SCANNING && !scannedRobotsDuringScanPhase.contains(ROBOT_NAME) ){
+            scannedRobotsDuringScanPhase.add(ROBOT_NAME);
+        }
+
+        /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
+        final RobotStatistics TARGET_STATISTICS = STATISTICS.get( targetName );
+
+        final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
+        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
+
+        /* Initiate virtualized bullets routine */
+        if (CURRENT_TARGET_STAT.getEnergy() - PREVIOUS_TARGET_STAT.getEnergy() < 0) {
+
+            /* Virtual bullets routine. */
+            virtualizeBullets(CURRENT_TARGET_STAT);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onHitByBullet( HitByBulletEvent e ) {
+        STATISTICS.get(e.getName()).incrementAggression();
+        System.out.println(String.format("%s is engaging, current agression level is: %d",e.getName(),STATISTICS.get(e.getName()).getAggression()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onHitWall( HitWallEvent e ) {
+        // TODO: 09/04/2019
     }
 
     /**
