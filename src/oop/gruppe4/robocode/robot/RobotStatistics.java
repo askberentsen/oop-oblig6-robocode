@@ -12,11 +12,30 @@ import java.util.LinkedList;
  */
 public class RobotStatistics {
 
+    /**
+     * The status.
+     * @see Status
+     */
     private Status status = Status.ACTIVE;
+
+    /**
+     * The reason for being targeted.
+     */
     private String reasonForBeingTargeted;
 
+    /**
+     * A counter for keeping track of bullet hits.
+     */
     private int misses = 0;
+
+    /**
+     * A counter for keeping track of bullet misses.
+     */
     private int hits = 0;
+
+    /**
+     * A counter for keeping track of how aggressive a robot is.
+     */
     private double aggression = 0;
 
     /**
@@ -51,56 +70,114 @@ public class RobotStatistics {
         history.add( stat );
     }
 
+    /**
+     * Sets the reason for being targeted.
+     * @param reason a {@code String}.
+     */
     public void setReason( String reason ){
         this.reasonForBeingTargeted = reason;
     }
+
+    /**
+     * Gets the reason for being targeted.
+     * @param reason a {@code String}.
+     */
     public String getReason(){
         return this.reasonForBeingTargeted;
     }
+
+    /**
+     * Sets the status.
+     * @param status a status.
+     */
     public void setStatus( Status status ){
         this.status = status;
     }
 
+    /**
+     * Gets the status.
+     * @return the status.
+     */
     public Status getStatus(){
         return this.status;
     }
 
+    /**
+     * Checks if {@code this} is active.
+     * @return {@code true} if the {@link #status} is set to {@link Status#ACTIVE}.
+     *          {@code false} otherwise.
+     */
     public boolean isActive(){
         return status.getValue() >= 2;
     }
 
+    /**
+     * Checks if {@code this} is alive.
+     * @return {@code true} if the {@link #status} is set to {@link Status#ACTIVE} or {@link Status#UNKNOWN}.
+     *          {@code false} otherwise.
+     */
     public boolean isAlive() {
         return status.getValue() >= 1;
     }
 
+    /**
+     * Checks if {@code this} is alive.
+     * @return {@code true} if the {@link #status} is set to {@link Status#RETIRED}.
+     *          {@code false} otherwise.
+     */
     public boolean isReitred() {
         return status == Status.RETIRED;
     }
 
+    /**
+     * Gets the aggression level.
+     * @return the aggression level.
+     */
     public double getAggression() {
         return aggression;
     }
 
-    public void addAggression( double amount ){
+    /**
+     * Adds an amount to the aggression level.
+     * @param amount an amount to increase with.
+     */
+    public void addAggression( double amount ) {
         this.aggression += amount;
     }
 
+    /**
+     * Gets the amount of bullet hits.
+     * @return the amount of hits.
+     */
     public int getHits() {
         return hits;
     }
 
+    /**
+     * Increments the amount of hits by {@code 1}.
+     */
     public void addHit() {
         this.hits++;
     }
 
+    /**
+     * Gets the amount of missed bullets.
+     * @return the amount of misses.
+     */
     public int getMisses() {
         return misses;
     }
 
+    /**
+     * Increments the amount of misses by {@code 1}.
+     */
     public void addMiss() {
         this.misses++;
     }
 
+    /**
+     * Predicts the next {@link Statistic} based on the previous {@code Statistic}.
+     */
     public void predict() {
         Statistic last = getLast();
         Statistic previous = getPrevious();
@@ -142,7 +219,7 @@ public class RobotStatistics {
      * @throws NullPointerException if {@code history} is empty.
      * @see #history
      */
-    public Statistic getDelta(){
+    public Statistic getDelta() {
         /* If getDelta() is called before two entries exists, the delta is just the last index */
         if( history.size() == 1) return history.getLast();
 
@@ -159,7 +236,7 @@ public class RobotStatistics {
         return new Statistic( positionDelta, trajectoryDelta, velocityDelta, timeStampDelta, energyDelta );
     }
 
-    public Statistic getPrevious(){
+    public Statistic getPrevious() {
         if( history.size() == 1) return history.getLast();
 
         return history.get(history.size()-2);
@@ -249,16 +326,45 @@ public class RobotStatistics {
         }
     }
 
+    /**
+     * The status of a {@code Robot}.
+     */
     public enum Status {
+
+        /**
+         * The status of a {@code Robot} that is presumed or known to be active.
+         */
         ACTIVE(2),
+
+        /**
+         * The status of a {@code Robot} that is not known whether dead or alive.
+         */
         UNKNOWN(1),
+
+        /**
+         * The status of a {@code Robot} that is known to be dead/retired.
+         */
         RETIRED(0);
-        private final int VALUE;
-        Status( int value ){
-            this.VALUE = value;
+
+        /**
+         * A flag.
+         */
+        private final int FLAG;
+
+        /**
+         * Enum constructor.
+         * @param flag a flag.
+         */
+        Status( int flag ){
+            this.FLAG = flag;
         }
+
+        /**
+         * Gets the flag.
+         * @return an {@code int}.
+         */
         public int getValue(){
-            return this.VALUE;
+            return this.FLAG;
         }
     }
 }

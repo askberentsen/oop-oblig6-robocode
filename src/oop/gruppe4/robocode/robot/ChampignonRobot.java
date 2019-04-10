@@ -702,6 +702,7 @@ public class ChampignonRobot extends AdvancedRobot {
      *     Uses convergence to estimate the future position of {@code coordinates} to a degree of accuracy.
      * </p>
      * <em>A reversible function that can be applied to any reference frame.</em>
+     * @param referenceFrame the coordinates to use as a reference frame.
      * @param coordinates the initial coordinates of a target.
      * @param trajectory the trajectory of a target.
      * @return the coordinate to intercept.
