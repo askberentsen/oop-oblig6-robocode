@@ -80,7 +80,7 @@ public class RobotStatistics {
 
     /**
      * Gets the reason for being targeted.
-     * @param reason a {@code String}.
+     * @return reason a {@code String}.
      */
     public String getReason(){
         return this.reasonForBeingTargeted;

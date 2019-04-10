@@ -360,7 +360,6 @@ public class ChampignonRobot extends AdvancedRobot {
      * Prints statistics and properties for a given tick.
      */
     private void log() {
-
         String locale;
         {
             String lineSeparator = "|----------------------|--------------------------------\n";
@@ -443,7 +442,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 targetTimestamp
         );
 
-        System.out.println(text);
+        this.out.println(text);
 
     }
 
@@ -970,7 +969,7 @@ public class ChampignonRobot extends AdvancedRobot {
     }
     
     /**
-     * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
+     * This method is called when your robot sees another robot, i.e.&nbsp; when the robot's radar scan "hits" another robot.
      * <p>
      *     Assumes the enemy has fired a bullet if the energy of the scanned robot is
      *     discrepant to the expected energy level.
@@ -1003,48 +1002,33 @@ public class ChampignonRobot extends AdvancedRobot {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
         STATISTICS.get(e.getName()).addAggression(e.getPower());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void onBulletHit( BulletHitEvent e ) {
         STATISTICS.get(e.getName()).addHit();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void onBulletMissed(BulletMissedEvent event) {
         // TODO: 10/04/2019
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void onHitRobot(HitRobotEvent event) {
         // TODO: 10/04/2019
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void onHitWall( HitWallEvent e ) {
         // TODO: 09/04/2019
     }
 
     /**
-     * The state finite states of {@code this}.
+     * The state of the radar.
      */
     private enum RadarStatus {
 
