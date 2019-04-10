@@ -69,7 +69,7 @@ public class ChampignonRobot extends AdvancedRobot {
      *     will disengage and pick a new target.
      * </p>
      * @see #targetName
-     * @see #tick()
+     * @see #update()
      * @see RadarStatus#ENGAGING
      */
     private int consecutiveTicksTargetNotFound = 0;
@@ -78,7 +78,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * A list of statistics for all the robots in the game.
      * <p>
      *     Logs some relevant statistics about all the robots.
-     *     If a {@code Robot} has not been scanned this tick, a predicted statistic for this tick
+     *     If a {@code Robot} has not been scanned this update, a predicted statistic for this update
      *     will be auto-generated.
      * </p>
      * <p>
@@ -87,20 +87,20 @@ public class ChampignonRobot extends AdvancedRobot {
      *     dead, and will no longer generate predictions.
      * </p>
      * @see #targetName
-     * @see #tick()
+     * @see #update()
      * @see #logRobot(ScannedRobotEvent)
      * @see RobotStatistics
      */
     private final HashMap<String, RobotStatistics> STATISTICS = new HashMap<>();
 
     /**
-     * A set of {@code Robot} names scanned in one tick.
+     * A set of {@code Robot} names scanned in one update.
      * <p>
-     *     The set of names is filled up during the tick, and after all the
-     *     {@code Robot} names have been logged and the tick is completed,
+     *     The set of names is filled up during the update, and after all the
+     *     {@code Robot} names have been logged and the update is completed,
      *     the set is emptied.
      * </p>
-     * @see #tick()
+     * @see #update()
      * @see #logRobot(ScannedRobotEvent)
      */
     private final HashSet<String> SCANNED_ROBOTS_PER_TICK = new HashSet<>();
@@ -122,7 +122,7 @@ public class ChampignonRobot extends AdvancedRobot {
      *     If a {@code Robot} was not found during the {@code SCANNING} phase, and it had already
      *     been marked as inactive, it can confidently be declared dead.
      * </p>
-     * @see #tick()
+     * @see #update()
      * @see #logRobot(ScannedRobotEvent)
      * @see RadarStatus#SCANNING
      */
@@ -137,7 +137,7 @@ public class ChampignonRobot extends AdvancedRobot {
      *     direct, linear or circular interception, and as such, {@code this} can avoid the positions of
      *     where these bullets would be if they were real.
      * </p>
-     * @see #tick()
+     * @see #update()
      * @see #virtualizeBullets(Transform)
      */
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
@@ -147,7 +147,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * Class initializer.
      * <p>
      *     Sets the event priority such that {@code this} can react to killing an enemy
-     *     and scanning the robots at the end of the tick.
+     *     and scanning the robots at the end of the update.
      * </p>
      * <p>
      *     Sets the gun and radar to be entirely independent.
@@ -155,7 +155,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void run() {
-        /* We want to know whether a robot has been scanned or not for every tick.
+        /* We want to know whether a robot has been scanned or not for every update.
          * ScannedRobotEvent is set to a higher priority than StatusEvent, so that
          * we can check if a target has been scanned. */
         super.setEventPriority("RobotDeathEvent", 99);
@@ -168,13 +168,14 @@ public class ChampignonRobot extends AdvancedRobot {
         setBodyColor(Color.MAGENTA);
     }
 
+    /* TICK ROUTINES */
     /**
      * The main method.
      * <p>
-     *     {@code tick()} is the method that will be called at the end of a tick.
+     *     {@code update()} is the method that will be called at the end of a update.
      * </p>
      * <p>
-     *     At the end of a tick, the positions of the virtual bullets and unscanned robots will
+     *     At the end of a update, the positions of the virtual bullets and unscanned robots will
      *     be updated to a predicted position. These positions can be used when deciding where to move
      *     and where to scan.
      * </p>
@@ -182,7 +183,7 @@ public class ChampignonRobot extends AdvancedRobot {
      *     After having updated all the positions, {@code this} will decide where to move next.
      * </p>
      * <p>
-     *     The main logic of {@code tick()} is decided by the {@link #status}, and will react accordingly.
+     *     The main logic of {@code update()} is decided by the {@link #status}, and will react accordingly.
      * </p>
      * <p>
      *     When in the {@link RadarStatus#SCANNING} phase, this method will check whether or not
@@ -200,14 +201,14 @@ public class ChampignonRobot extends AdvancedRobot {
      *     the radar has scanned the target. If it has <em>not</em>, then count the amount of consecutive
      *     ticks {@link #targetName} was not found. If the target has been missing for 3 or more ticks,
      *     then we can confidently disengage. Regardless whether or not the target was found during any specific
-     *     tick, {@code tick()} will try to predict the targets position and lock the radar to an area with
-     *     some leeway. For every tick, the gun will aim towards the predicted position, and once the gun
+     *     update, {@code update()} will try to predict the targets position and lock the radar to an area with
+     *     some leeway. For every update, the gun will aim towards the predicted position, and once the gun
      *     is sufficiently accurate, it will fire a bullet.
      *     Once the gun has fired, {@code this} begins the {@code SCANNING} phase again while waiting for the gun
      *     to cool down.
      * </p>
      * <p>
-     *     At the very end of a tick, {@code SCANNED_ROBOTS_PER_TICK} will be cleared.
+     *     At the very end of a update, {@code SCANNED_ROBOTS_PER_TICK} will be cleared.
      * </p>
      * @see #targetName
      * @see #STATISTICS
@@ -219,126 +220,114 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see #lockScanner()
      * @see RadarStatus
      */
-    private void tick() {
+    private void update() {
 
         /* Virtual bullet routine. */
-        for( Transform virtualBullet : virtualBullets ) {
-            // TODO: 09/04/2019 virtual bullets routine.
-            virtualBullet.update();
-            if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
-                virtualBullets.remove( virtualBullet );
-            }
-        }
+        updateVirtualBullets();
 
         /* History routine. */
-        STATISTICS.forEach( (name, statistics) -> {
-            /* Assume that robots that were not scanned this tick are moving linearly. */
-            if( !SCANNED_ROBOTS_PER_TICK.contains( name ) && statistics.isAlive() ){
-                // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
-                statistics.predict();
-            }
-        });
-
+        updateStatistics();
 
         /* Movement routine. */
-        // TODO: 09/04/2019 update self.
+        updateMovement();
 
         /* Scanner routine. */
         switch ( status ) {
 
-            /* Scan 360 degrees to log the transforms of every enemy.
-             * When scanner is done, aim the scanner to where the enemy was last seen.
-             * Begin targeting phase.
-             */
             case SCANNING: {
-
-                /* Scan completed */
-                if( getRadarTurnRemainingRadians() == 0.0 ){
-
-                    /* Disengage all enemies that were not found during the scan phase. */
-                    STATISTICS.forEach( (name, statistics) -> {
-                        if( !SCANNED_ROBOTS_DURING_SCAN_PHASE.contains(name) ){
-
-                            /* If a robot that was not found during this sweep, deactivate it. */
-                            if( statistics.isActive() ) {
-                                statistics.setActive(false);
-                            }
-                            /* If a robot was not found this sweep, and the amount of alive robots in
-                             * in the game is different to the amount of robots that have been counted as
-                             * alive, assume dead.
-                             */
-                            else if( getOthers() != getAliveRobots().size()){
-                                statistics.setAlive(false);
-                            }
-                        }
-                    });
-
-                    beginTargetPhase();
-                }
+                updateScanningState();
                 break;
             }
-
-            /* Aim the scanner to the targets last known position.
-             * If the target was not found at the last known position, continue to scan for
-             * 180 degrees.
-             * If the enemy was not found at all, disengage. -> enter Scanning phase.
-             *
-             * if the enemy was found, enter engagement phase.
-             *
-             * Aim gun to the targets predicted position based on the predicted current position ( update via history )
-             */
             case TARGETING: {
-
-                /* Move gun closer to the target. */
-                aimGun();
-
-                if( SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
-                    beginEngagePhase();
-                }
-                else if( getRadarTurnRemainingRadians() == 0.0 ){
-                    //enemy was not where expected.
-                    disengage();
-                }
-
+                updateTargetingState();
                 break;
             }
-
-            /* Lock the scanner to the target.
-             * Aim the gun to the targets predicted position.
-             * Shoot at enemy after having scanned for at least 2 ticks, gun is cooled down, target is close enough
-             * and if the gun is aiming at the predicted position with a reasonable degree of accuracy (less than 5 pixels).
-             *
-             * If the enemy was lost for 450 degrees, disengage.
-             */
             case ENGAGING: {
-                if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
-                    consecutiveTicksTargetNotFound++;
-                    if( consecutiveTicksTargetNotFound > 2 ){
-                        disengage();
-                        break;
-                    }
-                }
-                else{
-                    consecutiveTicksTargetNotFound = 0;
-                }
-
-                lockScanner();
-
-                aimGun();
-
-                final double ACCEPTABLE_ACCURACY = Math.PI / 180;
-                if( getGunHeat() == 0 && getGunTurnRemainingRadians() < ACCEPTABLE_ACCURACY ){
-
-                    // TODO: 09/04/2019 save the bullet information so we can track which bullet missed which target.
-                    Bullet bullet = setFireBullet( Math.min( getEnergy(), Rules.MAX_BULLET_POWER ) );
-                    beginScanPhase();
-                }
+                updateEngagingState();
                 break;
             }
         }
 
         /* Reset the counter */
         SCANNED_ROBOTS_PER_TICK.clear();
+    }
+
+    private void updateVirtualBullets(){
+        // TODO: 10/04/2019
+        for( Transform virtualBullet : virtualBullets ) {
+            virtualBullet.update();
+            if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
+                virtualBullets.remove( virtualBullet );
+            }
+        }
+    }
+    private void updateStatistics(){
+        STATISTICS.forEach( (name, statistics) -> {
+            /* Assume that robots that were not scanned this update are moving linearly. */
+            if( !SCANNED_ROBOTS_PER_TICK.contains( name ) && statistics.isAlive() ){
+                // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
+                statistics.predict();
+            }
+        });
+    }
+    private void updateScanningState(){
+        if( getRadarTurnRemainingRadians() == 0.0 ){
+
+            /* Disengage all enemies that were not found during the scan phase. */
+            STATISTICS.forEach( (name, statistics) -> {
+                if( !SCANNED_ROBOTS_DURING_SCAN_PHASE.contains(name) ){
+
+                    /* If a robot that was not found during this sweep, deactivate it. */
+                    if( statistics.isActive() ) {
+                        statistics.setActive(false);
+                    }
+                    /* If a robot was not found this sweep, and the amount of alive robots in
+                     * in the game is different to the amount of robots that have been counted as
+                     * alive, assume dead.
+                     */
+                    else if( getOthers() != getAliveRobots().size()){
+                        statistics.setAlive(false);
+                    }
+                }
+            });
+
+            beginTargetPhase();
+        }
+    }
+    private void updateTargetingState(){
+        aimGun();
+
+        if( SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
+            beginEngagePhase();
+        }
+        else if( getRadarTurnRemainingRadians() == 0.0 ){
+            //enemy was not where expected.
+            disengage();
+        }
+    }
+    private void updateEngagingState(){
+        if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
+            consecutiveTicksTargetNotFound++;
+            if( consecutiveTicksTargetNotFound > 2 ){
+                disengage();
+                return;
+            }
+        }
+        else{
+            consecutiveTicksTargetNotFound = 0;
+        }
+
+        lockScanner();
+
+        aimGun();
+
+        final double ACCEPTABLE_ACCURACY = Math.PI / 180;
+        if( getGunHeat() == 0 && getGunTurnRemainingRadians() < ACCEPTABLE_ACCURACY ){
+
+            // TODO: 09/04/2019 save the bullet information so we can track which bullet missed which target.
+            Bullet bullet = setFireBullet( Math.min( getEnergy(), Rules.MAX_BULLET_POWER ) );
+            beginScanPhase();
+        }
     }
 
     /* TARGET DISCRIMINATION */
@@ -561,7 +550,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * Locks the scanner to the area around the target {@code Robot}.
      * <p>
-     *     Calculates the maximum angle that the radar can sweep in one tick and constrains it
+     *     Calculates the maximum angle that the radar can sweep in one update and constrains it
      *     with some uncertainty factor so that if the target moves outside of the bounds, the radar
      *     has enough room to overshoot the target.
      * </p>
@@ -724,7 +713,7 @@ public class ChampignonRobot extends AdvancedRobot {
      *     Sets the radar to scan {@code 360} degrees.
      * </p>
      * @see #status
-     * @see #tick()
+     * @see #update()
      * @see RadarStatus#SCANNING
      */
     private void beginScanPhase() {
@@ -793,7 +782,7 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * Gets the latest statistics of the target. Either fresh or predicted.
-     * @return the statistics of the target this tick.
+     * @return the statistics of the target this update.
      * @throws NullPointerException if the target has not been initialized.
      * @see #STATISTICS
      */
@@ -836,7 +825,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * This method is called when the status is updated.
      * <p>
-     *     Called every tick.
+     *     Called every update.
      * </p>
      * @param e a {@code StatusEvent}.
      */
@@ -850,11 +839,9 @@ public class ChampignonRobot extends AdvancedRobot {
         }
 
         /* Main method. */
-        tick();
+        update();
     }
-
-
-
+    
     /**
      * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
      * <p>
@@ -895,6 +882,30 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
         STATISTICS.get(e.getName()).addAggression(e.getPower());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onBulletHit( BulletHitEvent e ) {
+        STATISTICS.get(e.getName()).addHit();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onBulletMissed(BulletMissedEvent event) {
+        // TODO: 10/04/2019
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onHitRobot(HitRobotEvent event) {
+        // TODO: 10/04/2019
     }
 
     /**

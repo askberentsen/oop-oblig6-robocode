@@ -98,6 +98,14 @@ public class RobotStatistics {
         this.aggression += amount;
     }
 
+    public int getHits() {
+        return hits;
+    }
+
+    public void addHit() {
+        this.hits++;
+    }
+
     public void predict() {
         Statistic last = getLast();
         Statistic previous = getPrevious();
