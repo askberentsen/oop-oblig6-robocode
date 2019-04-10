@@ -142,7 +142,6 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
 
-
     /**
      * Class initializer.
      * <p>
@@ -330,7 +329,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * The method to run every tick the {@link #status} is set to {@link RadarStatus#ENGAGING}
      */
-    private void updateEngagingState(){
+    private void updateEngagingState() {
         if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
             consecutiveTicksTargetNotFound++;
             if( consecutiveTicksTargetNotFound > 2 ){
@@ -362,23 +361,25 @@ public class ChampignonRobot extends AdvancedRobot {
 
         String locale;
         {
-            locale = "\n\n\n\n|----------------------|--------------------------------\n" +
+            String lineSeparator = "|----------------------|--------------------------------\n";
+            locale = "\n\n\n\n" +
+                    lineSeparator +
                     "|                      |\n" +
                     "| ChampignonRobot      |\n" +
-                    "|----------------------|--------------------------------\n" +
+                    lineSeparator +
                     "| STATUS               : %s\n" +
                     "| position             : %s\n" +
                     "| trajectory           : %s\n" +
                     "| energy-level         : %g\n" +
-                    "|----------------------|--------------------------------\n" +
+                    lineSeparator +
                     "|                      |\n" +
                     "| Robots               |\n" +
-                    "|----------------------|--------------------------------\n" +
+                    lineSeparator +
                     "| %s\n"+
-                    "|----------------------|--------------------------------\n" +
+                    lineSeparator +
                     "|                      |\n" +
                     "| Target               : %s\n" +
-                    "|----------------------|--------------------------------\n" +
+                    lineSeparator +
                     "| STATUS               : %s\n" +
                     "| reason for targeting : %s\n" +
                     "| position             : %s %s\n" +
@@ -388,7 +389,8 @@ public class ChampignonRobot extends AdvancedRobot {
                     "| distance             : %s %s\n" +
                     "| hits                 : %s\n" +
                     "| misses               : %s\n" +
-                    "| timestamp            : %s";
+                    "| timestamp            : %s\n" +
+                    lineSeparator;
         }
 
         String targetStatus         = null,
@@ -457,6 +459,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void pickTarget() {
 
+        // TODO: 10/04/2019 Log the reason for targeting a robot.
         /* The name of the highest rated target. */
         String targetName = null;
 
@@ -490,7 +493,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 /* Robot is active and target is inactive*/
                 final int ACTIVITY_DIFFERENCE = Boolean.compare( ROBOT_STATISTICS.isActive(), targetStatistics.isActive());
 
-                /* Robot is more agression than the target */
+                /* Robot is more aggression than the target */
                 final int AGGRESSION_DIFFERENCE = Double.compare( ROBOT_STATISTICS.getAggression(), targetStatistics.getAggression() );
 
                 /* Robot has more energy than the target */
@@ -545,7 +548,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RobotStatistics
      * @see RobotStatistics.Statistic
      */
-    private void logRobot(@NotNull ScannedRobotEvent e ) {
+    private void logRobot( @NotNull ScannedRobotEvent e ) {
 
         final String ROBOT_NAME = e.getName();
         
@@ -900,8 +903,7 @@ public class ChampignonRobot extends AdvancedRobot {
     private Vector2 getTrajectory() {
         return new Vector2(getVelocity(),0).rotate( getHeadingRadians() );
     }
-
-
+    
     /**
      * Gets the latest statistics of the target. Either fresh or predicted.
      * @return the statistics of the target this update.
@@ -1020,7 +1022,6 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onBulletMissed(BulletMissedEvent event) {
         // TODO: 10/04/2019
-        setBodyColor(Color.GREEN);
     }
 
     /**
