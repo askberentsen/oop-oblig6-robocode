@@ -208,8 +208,18 @@ public class ChampignonRobot extends AdvancedRobot {
      * <p>
      *     At the very end of a tick, {@code SCANNED_ROBOTS_PER_TICK} will be cleared.
      * </p>
+     * @see #targetName
+     * @see #STATISTICS
+     * @see #virtualBullets
+     * @see #SCANNED_ROBOTS_PER_TICK
+     * @see #SCANNED_ROBOTS_DURING_SCAN_PHASE
+     * @see #aimGun()
+     * @see #disengage()
+     * @see #lockScanner()
+     * @see RadarStatus
      */
     private void tick() {
+
         /* Virtual bullet routine. */
         for( Transform virtualBullet : virtualBullets ) {
             // TODO: 09/04/2019 virtual bullets routine.
@@ -250,7 +260,6 @@ public class ChampignonRobot extends AdvancedRobot {
 
                             /* If a robot that was not found during this sweep, deactivate it. */
                             if( statistics.isActive() ) {
-                                System.out.println("did not find " + name + " this sweep, setting to inactive.");
                                 statistics.setActive(false);
                             }
                             /* If a robot was not found this sweep, and the amount of alive robots in
@@ -258,7 +267,6 @@ public class ChampignonRobot extends AdvancedRobot {
                              * alive, assume dead.
                              */
                             else if( getOthers() != getAliveRobots().size()){
-                                System.out.println("did not find " + name + " this sweep, assuming dead.");
                                 statistics.setAlive(false);
                             }
                         }
@@ -280,7 +288,6 @@ public class ChampignonRobot extends AdvancedRobot {
              */
             case TARGETING: {
 
-                System.out.println(targetName);
                 /* Move gun closer to the target. */
                 aimGun();
 
@@ -304,7 +311,6 @@ public class ChampignonRobot extends AdvancedRobot {
              */
             case ENGAGING: {
                 if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
-                    System.out.println( "Did not find " + targetName + " this tick" );
                     consecutiveTicksTargetNotFound++;
                     if( consecutiveTicksTargetNotFound > 2 ){
                         disengage();
@@ -337,24 +343,40 @@ public class ChampignonRobot extends AdvancedRobot {
     /* TARGET DISCRIMINATION */
 
     /**
-     * 
+     * Decides which {@code Robot} to target.
+     * <p>
+     *     Compares all the alive entries of {@link #STATISTICS} and finds a
+     *     {@code Robot} to target.
+     * </p>
+     * @see #targetName
+     * @see #STATISTICS
+     * @see RobotStatistics
      */
     private void pickTarget() {
+
+        /* The name of the highest rated target. */
         String targetName = null;
+
+        /* The statistics of the highetst rated target. */
         RobotStatistics targetStatistics = null;
+
+        /* For every entry in STATISTICS, compare it to the highest rated target. */
         for( Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet() ) {
+
             final String ROBOT_NAME = entry.getKey();
             final RobotStatistics ROBOT_STATISTICS = entry.getValue();
 
-            /* Compare statistics */
+            /* Compare statistics. Ignore the robots that are presumed dead. */
             if( ROBOT_STATISTICS.isAlive() ){
 
-                /* First check */
+                /* If no target has been picked before, pick the first one. */
                 if( targetStatistics == null ){
                     targetName = ROBOT_NAME;
                     targetStatistics = ROBOT_STATISTICS;
                     continue;
                 }
+
+                /* A predicate for picking the most relevant comparision. */
                 final Predicate<Integer[]> PRIORITIZED_COMPARATOR = list -> {
                     for( int n : list){
                         if( n > 0 ) return true;
@@ -379,12 +401,17 @@ public class ChampignonRobot extends AdvancedRobot {
                         targetStatistics.getLast().getPosition().subtract( this.getPosition() ).getScalar(),
                         ROBOT_STATISTICS.getLast().getPosition().subtract( this.getPosition() ).getScalar()
                 );
+
                 final Integer[] LIST_OF_DIFFERENCES = new Integer[]{
                         AGGRESSION_DIFFERENCE,
                         ACTIVITY_DIFFERENCE,
                         ENERGY_DIFFERENCE,
                         DISTANCE_DIFFERENCE
                 };
+
+                /* If the robot is rated higher than the currently highest rated target,
+                 * set that robot as the highest rated target.
+                 */
                 if( PRIORITIZED_COMPARATOR.test( LIST_OF_DIFFERENCES ) ){
                     targetName = ROBOT_NAME;
                     targetStatistics = ROBOT_STATISTICS;
@@ -392,23 +419,28 @@ public class ChampignonRobot extends AdvancedRobot {
             }
         }
         /* Update the target-name */
-        System.out.println("picked target : " + targetName);
         this.targetName = targetName;
     }
 
     /**
-     * Clears a target from the history and untargets it.
+     * Disengages from the target.
+     * <p>
+     *     Sets the target to inactive, picks a new target and starts the {@link RadarStatus#SCANNING}
+     *     phase.
+     * </p>
      */
     private void disengage() {
-        System.out.println(String.format("Disengaging %s: Could not find target.", targetName ));
         STATISTICS.get( targetName ).setActive( false );
         pickTarget();
         beginScanPhase();
     }
 
     /**
-     * Logs the statistics of a target.
-     * @param e the target {@code ScannedRobotEvent}.
+     * Logs the statistics of a scanned {@code Robot}.
+     * @param e a scanned {@code Robot}.
+     * @see #STATISTICS
+     * @see RobotStatistics
+     * @see RobotStatistics.Statistic
      */
     private void logRobot(@NotNull ScannedRobotEvent e ) {
 
@@ -526,8 +558,13 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
-     * Locks the scanner.
-     * Flips the rotation of the scanner.
+     * Locks the scanner to the area around the target {@code Robot}.
+     * <p>
+     *     Calculates the maximum angle that the radar can sweep in one tick and constrains it
+     *     with some uncertainty factor so that if the target moves outside of the bounds, the radar
+     *     has enough room to overshoot the target.
+     * </p>
+     * @see #getTargetStatistics()
      */
     private void lockScanner() {
 
@@ -681,11 +718,15 @@ public class ChampignonRobot extends AdvancedRobot {
     /* STATUS MANAMGEMENT */
 
     /**
-     * Initializes the {@code SCANNING} phase.
+     * Initializes the {@link RadarStatus#SCANNING} phase.
+     * <p>
+     *     Sets the radar to scan {@code 360} degrees.
+     * </p>
+     * @see #status
+     * @see #tick()
      * @see RadarStatus#SCANNING
      */
     private void beginScanPhase() {
-        System.out.println("SCANNING...");
         status = RadarStatus.SCANNING;
 
         /* Scan 720 degrees in case target has moved. */
@@ -702,7 +743,6 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#TARGETING
      */
     private void beginTargetPhase() {
-        System.out.println("TARGETING");
         status = RadarStatus.TARGETING;
         pickTarget();
         if( targetName == null ){
@@ -728,7 +768,6 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see RadarStatus#ENGAGING
      */
     private void beginEngagePhase() {
-        System.out.println("ENGAGING");
         status = RadarStatus.ENGAGING;
 
         /* Calculate the angle to move the radar. */
@@ -743,7 +782,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /* GET METHODS */
 
     /**
-     * Gets the coordinates of {@code this} robot as a {@code Vector2}.
+     * Gets the coordinates of {@code this} as a {@code Vector2}.
      * @return the coordinates of {@code this}.
      */
     private Vector2 getPosition() {
@@ -753,14 +792,16 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * Gets the latest statistics of the target. Either fresh or predicted.
      * @return the statistics of the target this tick.
+     * @throws NullPointerException if the target has not been initialized.
+     * @see #STATISTICS
      */
     private RobotStatistics.Statistic getTargetStatistics() {
         return STATISTICS.get(targetName).getLast();
     }
 
     /**
-     *
-     * @return
+     * Gets a set of all all the robots that are alive.
+     * @return a {@code HashSet} of {@code Robot} names.
      */
     private HashSet<String> getAliveRobots() {
         HashSet<String> aliveRobots = new HashSet<>();
@@ -774,16 +815,29 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * This method is called when this robot kills another.
-     * Removes the killed robot from the logs and disengages if the killed enemy is the target.
+     * <p>
+     *     Disengages if the killed {@code Robot} was targeted.
+     * </p>
+     * <p>
+     *     Sets the {@code RobotStatistics} of the killed {@code Robot} to dead.
+     * </p>
+     * @see #STATISTICS
+     * @see #disengage()
      */
     @Override
     public void onRobotDeath( RobotDeathEvent e ) {
         /* Disengage and clear from history. */
         if( e.getName().equals(targetName) ) disengage();
         STATISTICS.get(e.getName()).setAlive(false);
-        //history.remove( e.getName() );
     }
 
+    /**
+     * This method is called when the status is updated.
+     * <p>
+     *     Called every tick.
+     * </p>
+     * @param e a {@code StatusEvent}.
+     */
     @Override
     public void onStatus( StatusEvent e ) {
         /* onStatus is called before run() has completed.
@@ -801,7 +855,10 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * This method is called when your robot sees another robot, i.e. when the robot's radar scan "hits" another robot.
-     * Uses finite states to decide what actions to perform.
+     * <p>
+     *     Assumes the enemy has fired a bullet if the energy of the scanned robot is
+     *     discrepant to the expected energy level.
+     * </p>
      */
     @Override
     public void onScannedRobot( ScannedRobotEvent e ) {
@@ -836,7 +893,6 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
         STATISTICS.get(e.getName()).incrementAggression();
-        System.out.println(String.format("%s is engaging, current agression level is: %d",e.getName(),STATISTICS.get(e.getName()).getAggression()));
     }
 
     /**
