@@ -17,34 +17,112 @@ import java.util.function.Predicate;
  */
 public class ChampignonRobot extends AdvancedRobot {
 
+    /* FIELDS */
+
     /**
-     * The state of the scanner.
+     * The status of the scanner.
+     * <p>
+     *     {@code ChampignonRobot} uses three different states to divide its tasks into three phases.
+     *     a phase will decide what actions and routines to perform and how to react to different inputs.
+     * </p>
+     * <p>
+     *     If the robot is in the {@link RadarStatus#SCANNING} state, the robot will scan around itself,
+     *     logging all the robots it found during the sweep.
+     * </p>
+     *
+     * <p>
+     *     If the robot is in the {@link RadarStatus#TARGETING} state, the robot will select a target and
+     *     scan towards where the target is predicted to be.
+     * </p>
+     *
+     * <p>
+     *     If the robot is in the {@link RadarStatus#ENGAGING} state, the robot will lock the scanner
+     *     onto the target so that it can be reasonably sure it has the freshest statistics of the target
+     *     at all times.
+     * </p>
      * @see RadarStatus
      */
     private RadarStatus status = RadarStatus.SCANNING;
 
     /**
      * The name of the the target.
+     * <p>
+     *     {@code ChampignonRobot} uses target discrimination to select a robot to target.
+     *     When logging all the robots, {@code ChampignonRobot} will select a target based on
+     *     some criteria and set the targeted robot as {@code targetName}.
+     * </p>
+     * <p>
+     *     {@code targetName} is used to get the statistics from {@link #STATISTICS}.
+     * </p>
+     * @see #STATISTICS
+     * @see #pickTarget()
      */
-    private String targetName;
+    private String targetName = null;
 
     /**
      * A counter for how many ticks the target was not found.
+     * <p>
+     *     When {@code ChampignonRobot} is in the {@link RadarStatus#ENGAGING} phase,
+     *     it will keep track of how many ticks have passed not having scanned {@link #targetName}.
+     *     If {@code targetName} was not found for a certain amount of ticks, {@code ChampignonRobot}
+     *     will disengage and pick a new target.
+     * </p>
+     * @see #targetName
+     * @see #tick()
+     * @see RadarStatus#ENGAGING
      */
     private int consecutiveTicksTargetNotFound = 0;
 
     /**
-     * The history of the targets.
+     * A list of statistics for all the robots in the game.
+     * <p>
+     *     Logs some relevant statistics about all the robots.
+     *     If a {@code Robot} has not been scanned this tick, a predicted statistic for this tick
+     *     will be auto-generated.
+     * </p>
+     * <p>
+     *     If a {@code Robot} dies, or is thought to be dead, the statistics will not be cleared,
+     *     but instead the statistics for the presumably dead {@code Robot} will be marked as
+     *     dead, and will no longer generate predictions.
+     * </p>
+     * @see #targetName
+     * @see #tick()
+     * @see #logRobot(ScannedRobotEvent)
+     * @see RobotStatistics
      */
     private final HashMap<String, RobotStatistics> STATISTICS = new HashMap<>();
 
     /**
-     * A list of names of the robots scanned in one scanning sweep.
+     * A set of {@code Robot} names scanned in one tick.
+     * <p>
+     *     The set of names is filled up during the tick, and after all the
+     *     {@code Robot} names have been logged and the tick is completed,
+     *     the set is emptied.
+     * </p>
+     * @see #tick()
+     * @see #logRobot(ScannedRobotEvent)
      */
     private final HashSet<String> SCANNED_ROBOTS_PER_TICK = new HashSet<>();
 
     /**
-     * A list of names of the robots scanned during the scanning phase.
+     * A set of {@code Robot} names scanned during the {@link RadarStatus#SCANNING} phase.
+     * <p>
+     *     The set of names is filled up during the scanning phase, which lasts several ticks.
+     *     After all the radar has completed its sweep, {@code ChampignonRobot} will
+     *     update the statistics off the robots, based on whether they were scanned or not
+     *     during that specific sweep.
+     * </p>
+     * <p>
+     *     If a {@code Robot} was not found during the {@code SCANNING} phase, it will be marked as
+     *     inactive. Inactive robots are robots that are not known to be dead or alive, and will be
+     *     prioritized less than other robots when picking a target.
+     * </p>
+     * <p>
+     *     If a {@code Robot} was not found during the {@code SCANNING} phase, and it had already
+     *     been marked as inactive, it can confidently be declared dead.
+     * </p>
+     * @see #tick()
+     * @see #logRobot(ScannedRobotEvent)
      * @see RadarStatus#SCANNING
      */
     private final HashSet<String> SCANNED_ROBOTS_DURING_SCAN_PHASE = new HashSet<>();
@@ -52,16 +130,27 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * A list of virtual bullets.
      * <p>
-     *     To avoid enemies the robot keeps track of virtual bullets the enemies could shoot, and
-     *     tries to avoid them.
+     *     When {@code ChampignonRobot} sees a discrepancy in the energy statistic of a {@code Robot},
+     *     it can assume the robot has fired a bullet. When this happens, some virtual bullets are generated
+     *     based on the transform history of {@code this}. We can assume the {@code Robot} will try to either use
+     *     direct, linear or circular interception, and as such, {@code this} can avoid the positions of
+     *     where these bullets would be if they were real.
      * </p>
-     * @see #onStatus(StatusEvent)
+     * @see #tick()
+     * @see #virtualizeBullets(Transform)
      */
     private ArrayList<Transform> virtualBullets = new ArrayList<>();
 
 
     /**
-     * Main method of {@code this}.
+     * Class initializer.
+     * <p>
+     *     Sets the event priority such that {@code this} can react to killing an enemy
+     *     and scanning the robots at the end of the tick.
+     * </p>
+     * <p>
+     *     Sets the gun and radar to be entirely independent.
+     * </p>
      */
     @Override
     public void run() {
@@ -202,12 +291,6 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /* TARGET DISCRIMINATION */
     private void pickTarget() {
-        /* Priority for picking target:
-         * Active
-         * Agressive
-         * Closest
-         * Highest energy
-         */
         String targetName = null;
         RobotStatistics targetStatistics = null;
         for( Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet() ) {
@@ -223,7 +306,6 @@ public class ChampignonRobot extends AdvancedRobot {
                     targetStatistics = ROBOT_STATISTICS;
                     continue;
                 }
-                //boolean robotIsMoreActive = robotStatistics.isActive() && !targetStatistics.isActive();
                 final Predicate<Integer[]> PRIORITIZED_COMPARATOR = list -> {
                     for( int n : list){
                         if( n > 0 ) return true;
