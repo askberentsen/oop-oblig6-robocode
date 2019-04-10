@@ -10,6 +10,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.function.Predicate;
 
+/* WARNING: BIG CODE-BLOCKS. SORRY! -Ask. */
 
 /**
  * The main robot of the project.
@@ -388,7 +389,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 final int ACTIVITY_DIFFERENCE = Boolean.compare( ROBOT_STATISTICS.isActive(), targetStatistics.isActive());
 
                 /* Robot is more agression than the target */
-                final int AGGRESSION_DIFFERENCE = Integer.compare( ROBOT_STATISTICS.getAggression(), targetStatistics.getAggression() );
+                final int AGGRESSION_DIFFERENCE = Double.compare( ROBOT_STATISTICS.getAggression(), targetStatistics.getAggression() );
 
                 /* Robot has more energy than the target */
                 final int ENERGY_DIFFERENCE = Double.compare(
@@ -746,6 +747,7 @@ public class ChampignonRobot extends AdvancedRobot {
         status = RadarStatus.TARGETING;
         pickTarget();
         if( targetName == null ){
+            /* No targets are available. */
             beginScanPhase();
             return;
         }
@@ -892,7 +894,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onHitByBullet( HitByBulletEvent e ) {
-        STATISTICS.get(e.getName()).incrementAggression();
+        STATISTICS.get(e.getName()).addAggression(e.getPower());
     }
 
     /**

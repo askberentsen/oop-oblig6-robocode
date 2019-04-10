@@ -17,7 +17,7 @@ public class RobotStatistics {
     private boolean alive = true;
     private int misses = 0;
     private int hits = 0;
-    private int aggression = 1;
+    private double aggression = 0;
 
     /**
      * The history of Transforms.
@@ -90,12 +90,12 @@ public class RobotStatistics {
         this.active = alive;
     }
 
-    public int getAggression() {
+    public double getAggression() {
         return aggression;
     }
 
-    public void incrementAggression(){
-        aggression++;
+    public void addAggression( double amount ){
+        this.aggression += amount;
     }
 
     public void predict() {
