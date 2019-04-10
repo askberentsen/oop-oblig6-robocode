@@ -91,6 +91,15 @@ public class ChampignonRobot extends AdvancedRobot {
         }
         if( !history.containsKey( ROBOT_NAME ) ) history.put( ROBOT_NAME, new RobotStatistics(30) );
 
+        RobotStatistics statistics = history.get( ROBOT_NAME );
+
+        /* If the scanned robot is alive, set to active. */
+        if( statistics.isAlive() ){
+            statistics.setActive(true);
+        }
+        /* Robot died this turn, updating information not necessary.  */
+        else return;
+
         /* Calculate the absolute bearing of the target. */
         final double ABSOLUTE_BEARING = Math.toRadians( ( getHeading() + e.getBearing() ) % 360 );
         final double ROBOT_X  = ( Math.sin( ABSOLUTE_BEARING ) * e.getDistance() ) + getX();
@@ -216,8 +225,24 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void disengage(){
         System.out.println(String.format("Disengaging %s: Could not find target.", targetName ));
-        targetName = null;
+        history.get( targetName ).setActive( false );
+        pickTarget();
         beginScanPhase();
+    }
+
+    private void pickTarget(){
+        /* Priority for picking target:
+         * Active
+         * Agressive
+         * Closest
+         * Highest energy
+         */
+        for( Map.Entry<String,RobotStatistics> entry : history.entrySet() ){
+            String robotName = entry.getKey();
+            RobotStatistics statistics = entry.getValue();
+            // TODO: 10/04/2019
+            targetName = robotName;
+        }
     }
 
     /**
@@ -241,7 +266,7 @@ public class ChampignonRobot extends AdvancedRobot {
         /* History routine. */
         history.forEach( (name, statistics) -> {
             /* Assume that robots that were not scanned this tick are moving linearly. */
-            if( !scannedRobotsPerTick.contains( name ) ){
+            if( !scannedRobotsPerTick.contains( name ) && statistics.isAlive() ){
                 // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
                 statistics.predict();
             }
@@ -265,7 +290,18 @@ public class ChampignonRobot extends AdvancedRobot {
                     /* Disengage all enemies that were not found during the scan phase. */
                     history.forEach( (name, statistics) -> {
                         if( !scannedRobotsDuringScanPhase.contains(name) ){
-                            statistics.setActive( false );
+
+                            /* If a robot that was not found during this sweep, deactivate it. */
+                            if( statistics.isActive() ) {
+                                statistics.setActive(false);
+                            }
+                            /* If a robot was not found this sweep, and the amount of alive robots in
+                             * in the game is different to the amount of robots that have been counted as
+                             * alive, assume dead.
+                             */
+                            else if( getOthers() != getAliveRobots().size()){
+                                statistics.setAlive(false);
+                            }
                         }
                     });
 
@@ -273,6 +309,7 @@ public class ChampignonRobot extends AdvancedRobot {
                     if( targetName != null ) {
                         beginTargetPhase();
                     }
+                    /* First round, no targets found yet. */
                     else{
                         beginScanPhase();
                     }
@@ -280,6 +317,10 @@ public class ChampignonRobot extends AdvancedRobot {
                 break;
             }
             case TARGETING: {
+
+                System.out.println(targetName);
+                /* Move gun closer to the target. */
+                aimGun();
 
                 if( scannedRobotsPerTick.contains(targetName) ){
                     beginEngagePhase();
@@ -301,7 +342,15 @@ public class ChampignonRobot extends AdvancedRobot {
             }
             case ENGAGING: {
                 if( !scannedRobotsPerTick.contains(targetName) ){
-                    System.out.println("Did not find target this tick! : ENGAGING");
+                    System.out.println( "Did not find " + targetName + " this tick" );
+                    consecutiveTicksTargetNotFound++;
+                    if( consecutiveTicksTargetNotFound > 2 ){
+                        disengage();
+                        break;
+                    }
+                }
+                else{
+                    consecutiveTicksTargetNotFound = 0;
                 }
 
                 lockScanner();
@@ -411,7 +460,8 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onRobotDeath( RobotDeathEvent e ) {
         /* Disengage and clear from history. */
         if( e.getName().equals(targetName) ) disengage();
-        history.remove( e.getName() );
+        history.get(e.getName()).setAlive(false);
+        //history.remove( e.getName() );
     }
 
     /**
@@ -438,6 +488,7 @@ public class ChampignonRobot extends AdvancedRobot {
     private void beginTargetPhase() {
         System.out.println("TARGETING");
         status = RadarStatus.TARGETING;
+        pickTarget();
 
         /* Calculate the angle to move the radar. */
         final Vector2 RELATIVE_POSITION = getTargetStatistics().getPosition().subtract( this.getPosition() );
@@ -605,6 +656,14 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private RobotStatistics.Statistic getTargetStatistics(){
         return history.get(targetName).getLast();
+    }
+
+    private ArrayList<String> getAliveRobots(){
+        ArrayList<String> aliveRobots = new ArrayList<>();
+        for(Map.Entry<String,RobotStatistics> entry : history.entrySet()){
+            if( entry.getValue().isAlive() ) aliveRobots.add(entry.getKey());
+        }
+        return aliveRobots;
     }
 
     /**
