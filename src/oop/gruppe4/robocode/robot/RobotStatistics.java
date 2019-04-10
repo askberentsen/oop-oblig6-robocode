@@ -13,8 +13,9 @@ import java.util.LinkedList;
  */
 public class RobotStatistics {
 
-    private boolean active = true;
-    private boolean alive = true;
+    private Status status = Status.ACTIVE;
+    private String reasonForBeingTargeted;
+
     private int misses = 0;
     private int hits = 0;
     private double aggression = 0;
@@ -51,43 +52,30 @@ public class RobotStatistics {
         history.add( stat );
     }
 
-    /**
-     * Checks if the robot is active.
-     * A robot that is inactive is not necessarily dead, but marked for
-     * an additional check to see if it is dead. If a robot has been found
-     * inactive too many times in a row, it should be marked as dead.
-     * @return {@code true} if {@code this} is active.
-     *         {@code false} otherwise.
-     */
+    public void setReason( String reason ){
+        this.reasonForBeingTargeted = reason;
+    }
+    public String getReason(){
+        return this.reasonForBeingTargeted;
+    }
+    public void setStatus( Status status ){
+        this.status = status;
+    }
+
+    public Status getStatus(){
+        return this.status;
+    }
+
     public boolean isActive(){
-        return this.active;
+        return status.getValue() >= 2;
     }
 
-    /**
-     * Sets the active status.
-     * @param active the active status of a robot.
-     */
-    public void setActive( boolean active ){
-        this.active = active;
-    }
-
-    /**
-     * Checks if the robot is alive.
-     * @return {@code true} if {@code this} is alive.
-     *         {@code false} otherwise.
-     */
     public boolean isAlive() {
-        return alive;
+        return status.getValue() >= 1;
     }
 
-    /**
-     * Sets the alive status.
-     * If a robot has its alive status, the active status is also changed to the same.
-     * @param alive the alive status of a robot.
-     */
-    public void setAlive(boolean alive) {
-        this.alive = alive;
-        this.active = alive;
+    public boolean isReitred() {
+        return status == Status.RETIRED;
     }
 
     public double getAggression() {
@@ -104,6 +92,14 @@ public class RobotStatistics {
 
     public void addHit() {
         this.hits++;
+    }
+
+    public int getMisses() {
+        return misses;
+    }
+
+    public void addMiss() {
+        this.misses++;
     }
 
     public void predict() {
@@ -126,6 +122,7 @@ public class RobotStatistics {
                 timeStamp,
                 energyDelta
         );
+        generated.predicted = true;
         history.add( generated );
     }
 
@@ -196,6 +193,8 @@ public class RobotStatistics {
          */
         private double energy;
 
+        private boolean predicted = false;
+
         /**
          * Class constructor.
          * @param position the coordinates of this logging.
@@ -242,8 +241,25 @@ public class RobotStatistics {
             return energy;
         }
 
+        public boolean isPredicted() {
+            return predicted;
+        }
+
         public String toString(){
             return String.format("Statistic: %s -> %s @ %d", getPosition(), getTrajectory(), timeStamp);
+        }
+    }
+
+    public enum Status {
+        ACTIVE(2),
+        UNKNOWN(1),
+        RETIRED(0);
+        private final int VALUE;
+        Status( int value ){
+            this.VALUE = value;
+        }
+        public int getValue(){
+            return this.VALUE;
         }
     }
 }

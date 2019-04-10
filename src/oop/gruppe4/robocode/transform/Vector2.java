@@ -146,6 +146,6 @@ public class Vector2 {
 
     @Override
     public String toString(){
-        return String.format("<%04f,%04f>", x, y);
+        return String.format("<% g,% g>", x, y);
     }
 }

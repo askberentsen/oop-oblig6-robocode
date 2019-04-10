@@ -222,6 +222,8 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private void update() {
 
+        this.log();
+
         /* Virtual bullet routine. */
         updateVirtualBullets();
 
@@ -294,14 +296,14 @@ public class ChampignonRobot extends AdvancedRobot {
 
                     /* If a robot that was not found during this sweep, deactivate it. */
                     if( statistics.isActive() ) {
-                        statistics.setActive(false);
+                        statistics.setStatus( RobotStatistics.Status.UNKNOWN );
                     }
                     /* If a robot was not found this sweep, and the amount of alive robots in
                      * in the game is different to the amount of robots that have been counted as
                      * alive, assume dead.
                      */
-                    else if( getOthers() != getAliveRobots().size()){
-                        statistics.setAlive(false);
+                    else if( getOthers() < getAliveRobots().size()){
+                        statistics.setStatus( RobotStatistics.Status.RETIRED );
                     }
                 }
             });
@@ -351,6 +353,94 @@ public class ChampignonRobot extends AdvancedRobot {
             Bullet bullet = setFireBullet( Math.min( getEnergy(), Rules.MAX_BULLET_POWER ) );
             beginScanPhase();
         }
+    }
+
+    /**
+     * Prints statistics and properties for a given tick.
+     */
+    private void log() {
+
+        String locale;
+        {
+            locale = "\n\n\n\n|----------------------|--------------------------------\n" +
+                    "|                      |\n" +
+                    "| ChampignonRobot      |\n" +
+                    "|----------------------|--------------------------------\n" +
+                    "| STATUS               : %s\n" +
+                    "| position             : %s\n" +
+                    "| trajectory           : %s\n" +
+                    "| energy-level         : %g\n" +
+                    "|----------------------|--------------------------------\n" +
+                    "|                      |\n" +
+                    "| Robots               |\n" +
+                    "|----------------------|--------------------------------\n" +
+                    "| %s\n"+
+                    "|----------------------|--------------------------------\n" +
+                    "|                      |\n" +
+                    "| Target               : %s\n" +
+                    "|----------------------|--------------------------------\n" +
+                    "| STATUS               : %s\n" +
+                    "| reason for targeting : %s\n" +
+                    "| position             : %s %s\n" +
+                    "| trajectory           : %s %s\n" +
+                    "| energy-level         : %s\n" +
+                    "| aggression           : %s\n" +
+                    "| distance             : %s %s\n" +
+                    "| hits                 : %s\n" +
+                    "| misses               : %s\n" +
+                    "| timestamp            : %s";
+        }
+
+        String targetStatus         = null,
+                targetReason        = null,
+                targetPosition      = null,
+                targetTrajectory    = null,
+                targetEnergy        = null,
+                targetAggression    = null,
+                targetDistance      = null,
+                targetHits          = null,
+                targetMisses        = null,
+                targetTimestamp     = null,
+                predicted           = "";
+
+        if( targetName != null ) {
+            RobotStatistics targetStatistics     = STATISTICS.get(targetName);
+            RobotStatistics.Statistic latestStat = getTargetStatistics();
+
+            targetStatus = targetStatistics.getStatus().name();
+            targetReason = targetStatistics.getReason();
+            targetPosition = latestStat.getPosition().toString();
+            targetTrajectory = latestStat.getTrajectory().toString();
+            targetEnergy = String.format( "%g", latestStat.getEnergy() );
+            targetAggression = String.format( "%g", targetStatistics.getAggression());
+            targetDistance = String.format( "%g", latestStat.getPosition().distance(this.getPosition()) );
+            targetHits = Integer.toString( targetStatistics.getHits() );
+            targetMisses = Integer.toString( targetStatistics.getMisses() );
+            targetTimestamp = Long.toString(latestStat.getTimeStamp());
+            predicted = latestStat.isPredicted() ? "(predicted)" : "";
+        }
+
+        String text = String.format(locale,
+                this.status.name(),
+                this.getPosition(),
+                this.getTrajectory(),
+                this.getEnergy(),
+                "TODO...",
+                targetName,
+                targetStatus,
+                targetReason,
+                targetPosition,     predicted,
+                targetTrajectory,   predicted,
+                targetEnergy,
+                targetAggression,
+                targetDistance,     predicted,
+                targetHits,
+                targetMisses,
+                targetTimestamp
+        );
+
+        System.out.println(text);
+
     }
 
     /* TARGET DISCRIMINATION */
@@ -443,7 +533,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * </p>
      */
     private void disengage() {
-        STATISTICS.get( targetName ).setActive( false );
+        STATISTICS.get( targetName ).setStatus( RobotStatistics.Status.UNKNOWN );
         pickTarget();
         beginScanPhase();
     }
@@ -466,7 +556,7 @@ public class ChampignonRobot extends AdvancedRobot {
 
         /* If the scanned robot is alive, set to active. */
         if( ROBOT_STATISTICS.isAlive() ){
-            ROBOT_STATISTICS.setActive(true);
+            ROBOT_STATISTICS.setStatus( RobotStatistics.Status.ACTIVE );
         }
         /* Robot died this turn, updating information not necessary.  */
         else return;
@@ -804,6 +894,15 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     /**
+     * Gets the trajectory of {@code this} as a {@code Vector2}.
+     * @return the trajectory of {@code this}.
+     */
+    private Vector2 getTrajectory() {
+        return new Vector2(getVelocity(),0).rotate( getHeadingRadians() );
+    }
+
+
+    /**
      * Gets the latest statistics of the target. Either fresh or predicted.
      * @return the statistics of the target this update.
      * @throws NullPointerException if the target has not been initialized.
@@ -842,7 +941,7 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onRobotDeath( RobotDeathEvent e ) {
         /* Disengage and clear from history. */
         if( e.getName().equals(targetName) ) disengage();
-        STATISTICS.get(e.getName()).setAlive(false);
+        STATISTICS.get(e.getName()).setStatus( RobotStatistics.Status.RETIRED );
     }
 
     /**
@@ -921,6 +1020,7 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onBulletMissed(BulletMissedEvent event) {
         // TODO: 10/04/2019
+        setBodyColor(Color.GREEN);
     }
 
     /**
