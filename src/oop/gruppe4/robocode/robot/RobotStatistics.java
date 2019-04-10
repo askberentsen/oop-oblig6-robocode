@@ -14,6 +14,7 @@ import java.util.LinkedList;
 public class RobotStatistics {
 
     private boolean active = true;
+    private boolean alive = true;
     private int misses = 0;
     private int hits = 0;
     private int hostility = 1;
@@ -50,12 +51,43 @@ public class RobotStatistics {
         history.add( stat );
     }
 
+    /**
+     * Checks if the robot is active.
+     * A robot that is inactive is not necessarily dead, but marked for
+     * an additional check to see if it is dead. If a robot has been found
+     * inactive too many times in a row, it should be marked as dead.
+     * @return {@code true} if {@code this} is active.
+     *         {@code false} otherwise.
+     */
     public boolean isActive(){
         return this.active;
     }
 
+    /**
+     * Sets the active status.
+     * @param active the active status of a robot.
+     */
     public void setActive( boolean active ){
         this.active = active;
+    }
+
+    /**
+     * Checks if the robot is alive.
+     * @return {@code true} if {@code this} is alive.
+     *         {@code false} otherwise.
+     */
+    public boolean isAlive() {
+        return alive;
+    }
+
+    /**
+     * Sets the alive status.
+     * If a robot has its alive status, the active status is also changed to the same.
+     * @param alive the alive status of a robot.
+     */
+    public void setAlive(boolean alive) {
+        this.alive = alive;
+        this.active = alive;
     }
 
     public void predict() {
