@@ -41,13 +41,13 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * A list of names of the robots scanned in one scanning sweep.
      */
-    private ArrayList<String> scannedRobotsPerTick = new ArrayList<>();
+    private final HashSet<String> SCANNED_ROBOTS_PER_TICK = new HashSet<>();
 
     /**
      * A list of names of the robots scanned during the scanning phase.
      * @see RadarStatus#SCANNING
      */
-    private ArrayList<String> scannedRobotsDuringScanPhase = new ArrayList<>();
+    private final HashSet<String> SCANNED_ROBOTS_DURING_SCAN_PHASE = new HashSet<>();
 
     /**
      * A list of virtual bullets.
@@ -91,7 +91,7 @@ public class ChampignonRobot extends AdvancedRobot {
         /* History routine. */
         STATISTICS.forEach( (name, statistics) -> {
             /* Assume that robots that were not scanned this tick are moving linearly. */
-            if( !scannedRobotsPerTick.contains( name ) && statistics.isAlive() ){
+            if( !SCANNED_ROBOTS_PER_TICK.contains( name ) && statistics.isAlive() ){
                 // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
                 statistics.predict();
             }
@@ -114,7 +114,7 @@ public class ChampignonRobot extends AdvancedRobot {
 
                     /* Disengage all enemies that were not found during the scan phase. */
                     STATISTICS.forEach( (name, statistics) -> {
-                        if( !scannedRobotsDuringScanPhase.contains(name) ){
+                        if( !SCANNED_ROBOTS_DURING_SCAN_PHASE.contains(name) ){
 
                             /* If a robot that was not found during this sweep, deactivate it. */
                             if( statistics.isActive() ) {
@@ -132,14 +132,7 @@ public class ChampignonRobot extends AdvancedRobot {
                         }
                     });
 
-                    /* Begin targeting. */
-                    if( targetName != null ) {
-                        beginTargetPhase();
-                    }
-                    /* First round, no targets found yet. */
-                    else{
-                        beginScanPhase();
-                    }
+                    beginTargetPhase();
                 }
                 break;
             }
@@ -149,7 +142,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 /* Move gun closer to the target. */
                 aimGun();
 
-                if( scannedRobotsPerTick.contains(targetName) ){
+                if( SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
                     beginEngagePhase();
                 }
                 else if( getRadarTurnRemainingRadians() == 0.0 ){
@@ -168,7 +161,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 break;
             }
             case ENGAGING: {
-                if( !scannedRobotsPerTick.contains(targetName) ){
+                if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
                     System.out.println( "Did not find " + targetName + " this tick" );
                     consecutiveTicksTargetNotFound++;
                     if( consecutiveTicksTargetNotFound > 2 ){
@@ -204,7 +197,7 @@ public class ChampignonRobot extends AdvancedRobot {
         }
 
         /* Reset foundTarget & scannedRobot */
-        scannedRobotsPerTick.clear();
+        SCANNED_ROBOTS_PER_TICK.clear();
     }
 
     /* TARGET DISCRIMINATION */
@@ -286,21 +279,18 @@ public class ChampignonRobot extends AdvancedRobot {
      * Logs the statistics of a target.
      * @param e the target {@code ScannedRobotEvent}.
      */
-    private void logTarget( @NotNull ScannedRobotEvent e ) {
+    private void logRobot(@NotNull ScannedRobotEvent e ) {
 
         final String ROBOT_NAME = e.getName();
+        
+        //if( !STATISTICS.containsKey( ROBOT_NAME ) ) STATISTICS.put( ROBOT_NAME, new RobotStatistics(30) );
+        STATISTICS.putIfAbsent( ROBOT_NAME, new RobotStatistics(30) );
 
-        /* target if e is the first scan. */
-        if( targetName == null ) {
-            targetName = ROBOT_NAME;
-        }
-        if( !STATISTICS.containsKey( ROBOT_NAME ) ) STATISTICS.put( ROBOT_NAME, new RobotStatistics(30) );
-
-        RobotStatistics statistics = STATISTICS.get( ROBOT_NAME );
+        final RobotStatistics ROBOT_STATISTICS = STATISTICS.get( ROBOT_NAME );
 
         /* If the scanned robot is alive, set to active. */
-        if( statistics.isAlive() ){
-            statistics.setActive(true);
+        if( ROBOT_STATISTICS.isAlive() ){
+            ROBOT_STATISTICS.setActive(true);
         }
         /* Robot died this turn, updating information not necessary.  */
         else return;
@@ -316,7 +306,7 @@ public class ChampignonRobot extends AdvancedRobot {
         final double ENERGY = e.getEnergy();
 
         /* Calculate the statistics of the target. */
-        RobotStatistics.Statistic targetStatistic = new RobotStatistics.Statistic(
+        final RobotStatistics.Statistic STATISTIC = new RobotStatistics.Statistic(
                 ROBOT_X,
                 ROBOT_Y,
                 ROBOT_DX,
@@ -326,7 +316,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 ENERGY
         );
 
-        statistics.add( targetStatistic );
+        ROBOT_STATISTICS.add( STATISTIC );
     }
 
     /* ENGAGEMENT METHODS */
@@ -665,6 +655,9 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     @Override
     public void onStatus( StatusEvent e ) {
+        if( e.getTime() < 1 ){
+            beginScanPhase();
+        }
         tick();
     }
 
@@ -699,20 +692,20 @@ public class ChampignonRobot extends AdvancedRobot {
     public void onScannedRobot( ScannedRobotEvent e ) {
 
         /* Log the statistics of the scanned robot. */
-        logTarget(e);
+        logRobot(e);
         final String ROBOT_NAME = e.getName();
-        /* Add robot to the list of robots found this sweep. */
-        scannedRobotsPerTick.add( ROBOT_NAME );
 
-        if( status == RadarStatus.SCANNING && !scannedRobotsDuringScanPhase.contains(ROBOT_NAME) ){
-            scannedRobotsDuringScanPhase.add(ROBOT_NAME);
+        /* Add robot to the list of robots found this sweep. */
+        SCANNED_ROBOTS_PER_TICK.add( ROBOT_NAME );
+
+        if( status == RadarStatus.SCANNING ){
+            SCANNED_ROBOTS_DURING_SCAN_PHASE.add(ROBOT_NAME);
         }
 
-        /* Get the statistics of the target (or the scanned robot if no robot was targeted) */
-        final RobotStatistics TARGET_STATISTICS = STATISTICS.get( targetName );
+        final RobotStatistics ROBOT_STATISTICS = STATISTICS.get( ROBOT_NAME );
 
-        final RobotStatistics.Statistic CURRENT_TARGET_STAT = TARGET_STATISTICS.getLast();
-        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = TARGET_STATISTICS.getPrevious();
+        final RobotStatistics.Statistic CURRENT_TARGET_STAT = ROBOT_STATISTICS.getLast();
+        final RobotStatistics.Statistic PREVIOUS_TARGET_STAT = ROBOT_STATISTICS.getPrevious();
 
         /* Initiate virtualized bullets routine */
         if (CURRENT_TARGET_STAT.getEnergy() - PREVIOUS_TARGET_STAT.getEnergy() < 0) {
