@@ -762,8 +762,8 @@ public class ChampignonRobot extends AdvancedRobot {
      *
      * @return
      */
-    private ArrayList<String> getAliveRobots() {
-        ArrayList<String> aliveRobots = new ArrayList<>();
+    private HashSet<String> getAliveRobots() {
+        HashSet<String> aliveRobots = new HashSet<>();
         for(Map.Entry<String,RobotStatistics> entry : STATISTICS.entrySet()){
             if( entry.getValue().isAlive() ) aliveRobots.add(entry.getKey());
         }
