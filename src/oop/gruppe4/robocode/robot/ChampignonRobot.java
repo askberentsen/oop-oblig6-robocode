@@ -252,7 +252,12 @@ public class ChampignonRobot extends AdvancedRobot {
         SCANNED_ROBOTS_PER_TICK.clear();
     }
 
-    private void updateVirtualBullets(){
+    /**
+     * Updates the positions of the virtual bullets.
+     * @see #virtualBullets
+     * @see #virtualizeBullets(Transform)
+     */
+    private void updateVirtualBullets() {
         // TODO: 10/04/2019
         for( Transform virtualBullet : virtualBullets ) {
             virtualBullet.update();
@@ -261,7 +266,13 @@ public class ChampignonRobot extends AdvancedRobot {
             }
         }
     }
-    private void updateStatistics(){
+
+    /**
+     * Updates the positions of the other robots.
+     * @see #STATISTICS
+     * @see #SCANNED_ROBOTS_PER_TICK
+     */
+    private void updateStatistics() {
         STATISTICS.forEach( (name, statistics) -> {
             /* Assume that robots that were not scanned this update are moving linearly. */
             if( !SCANNED_ROBOTS_PER_TICK.contains( name ) && statistics.isAlive() ){
@@ -270,7 +281,11 @@ public class ChampignonRobot extends AdvancedRobot {
             }
         });
     }
-    private void updateScanningState(){
+
+    /**
+     * The method to run every tick the {@link #status} is set to {@link RadarStatus#SCANNING}
+     */
+    private void updateScanningState() {
         if( getRadarTurnRemainingRadians() == 0.0 ){
 
             /* Disengage all enemies that were not found during the scan phase. */
@@ -294,7 +309,11 @@ public class ChampignonRobot extends AdvancedRobot {
             beginTargetPhase();
         }
     }
-    private void updateTargetingState(){
+
+    /**
+     * The method to run every tick the {@link #status} is set to {@link RadarStatus#TARGETING}
+     */
+    private void updateTargetingState() {
         aimGun();
 
         if( SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
@@ -305,6 +324,10 @@ public class ChampignonRobot extends AdvancedRobot {
             disengage();
         }
     }
+
+    /**
+     * The method to run every tick the {@link #status} is set to {@link RadarStatus#ENGAGING}
+     */
     private void updateEngagingState(){
         if( !SCANNED_ROBOTS_PER_TICK.contains(targetName) ){
             consecutiveTicksTargetNotFound++;
