@@ -10,6 +10,7 @@ import robocode.util.Utils;
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /* WARNING: BIG CODE-BLOCKS. SORRY!
@@ -294,7 +295,6 @@ public class ChampignonRobot extends AdvancedRobot {
         STATISTICS.forEach( (name, statistics) -> {
             /* Assume that robots that were not scanned this update are moving linearly. */
             if( !SCANNED_ROBOTS_PER_TICK.contains( name ) && statistics.isAlive() ){
-                // TODO: 09/04/2019 do predictions in ChampignonRobot instead of in robotStatistics. Account for boundaries.
                 statistics.predict();
             }
         });
@@ -791,7 +791,6 @@ public class ChampignonRobot extends AdvancedRobot {
         /* The vector to pivot from. */
         final Vector2 PIVOT = perpendicularVector.multiply( PIVOT_RADIUS / perpendicularVector.getScalar() );
 
-        //TODO: make bulletVelocity dynamic. As of now its hard-coded.
         double bulletVelocity = 11; // 20 - ( 3 * bulletpower )
 
         /* The predicted position. */
@@ -826,25 +825,35 @@ public class ChampignonRobot extends AdvancedRobot {
     /* MOVEMENT METHODS */
 
     /**
-     * TODO: 10/04/2019
+     * Updates the movement.
+     * <p>
+     *     Calculates the forces applied from the enemy robots, virtual bullets, walls and target
+     *     and applies the force to {@code this}.
+     * </p>
+     * @see #calculateForceVector(Vector2)
      */
-    public void updateMovement() {
+    private void updateMovement() {
+
+        /* The different forces to be applied to this robot. */
         Vector2 robotEvasiveForce       = Vector2.NULL,
                 bulletEvasiveForce      = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL,
                 wallEvasiveForce;
 
-        for (String enemyRobot : getAliveRobots()) {
+        /* Calculate the forces applied from all the other robots. */
+        for ( String enemyRobot : getAliveRobots() ) {
             Transform robotStats = STATISTICS.get(enemyRobot).getLast();
             Vector2 force = calculateForceVector(robotStats.getPosition());
             robotEvasiveForce = robotEvasiveForce.add(force);
         }
 
+        /* Calculate the forces applied from all the virtual bullets. */
         for (Transform bullet : virtualBullets) {
             Vector2 force = calculateForceVector(bullet.getPosition());
             bulletEvasiveForce = bulletEvasiveForce.add(force);
         }
 
+        /* Calculate the forces applied from all the walls */
         {
             Vector2 northForce = calculateForceVector(
                     new Vector2( this.getX(), getBattleFieldHeight() )
@@ -863,6 +872,7 @@ public class ChampignonRobot extends AdvancedRobot {
             );
         }
 
+        /* Calculate the forces applied from the target */
         if( targetName != null ){
             Vector2 targetPosition = STATISTICS.get(targetName).getLast().getPosition();
             Vector2 relativePosition = targetPosition.subtract( this.getPosition() );
@@ -875,6 +885,7 @@ public class ChampignonRobot extends AdvancedRobot {
             targetEngagementForce = normalVector.multiply(force);
         }
 
+        /* Take a weighted sum of all the forces. */
         Vector2 force = Vector2.sum(
                 bulletEvasiveForce   .multiply( -BULLET_EVASION_FACTOR   ).rotate( BULLET_EVASION_ANGLE    ),
                 targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR ).rotate( TARGET_ENGAGEMENT_ANGLE ),
@@ -883,17 +894,25 @@ public class ChampignonRobot extends AdvancedRobot {
         );
 
         double angle = force.getTheta();
-        // There will always be a forcefield.
-        // The forcefield is based on the enemies that it scans in between shots.
+
+        /* If the angle to turn is below 90 degrees, turn and move forward. */
         if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
             setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
             setAhead(Double.POSITIVE_INFINITY);
-        } else {
+        }
+        /* If the angle to turn is over 90 degrees, turn such that the butt faces the direction and move backwards. */
+        else {
             setTurnRightRadians(Utils.normalRelativeAngle(angle+Math.PI-getHeadingRadians()));
             setAhead(Double.NEGATIVE_INFINITY);
         }
     }
 
+    /**
+     * Calculates the force applied from a given coordinate.
+     * Assumes equal mass for all coordinates.
+     * @param coordinates the coordinates where the force originates.
+     * @return the force from the coordinate.
+     */
     private Vector2 calculateForceVector( Vector2 coordinates ){
         Vector2 relativeCoordinates = coordinates.subtract(this.getPosition());
         double distance = relativeCoordinates.getScalar();
@@ -1118,11 +1137,6 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onBulletHit( BulletHitEvent e ) {
         STATISTICS.get(e.getName()).addHit();
-    }
-
-    @Override
-    public void onBulletMissed(BulletMissedEvent event) {
-        // TODO: 10/04/2019
     }
 
     @Override
