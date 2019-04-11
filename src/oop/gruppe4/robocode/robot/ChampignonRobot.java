@@ -822,44 +822,57 @@ public class ChampignonRobot extends AdvancedRobot {
                 targetEngagementForce   = Vector2.NULL;
         final double ROBOT_EVASIVE_FACTOR = -1.0,
                 BULLET_EVASIVE_FACTOR = -4.0,
-                WALL_EVASIVE_FACTOR = -1.0,
+                WALL_EVASIVE_FACTOR = -10.0,
                 TARGET_ENGAGEMENT_FACTOR = 1.0;
 
-        if(getAliveRobots().size() > 0) {
-
-            for (String enemyRobot : getAliveRobots()) {
-                Transform robotStats = STATISTICS.get(enemyRobot).getLast();
-                Vector2 force = calculateForceVector(robotStats.getPosition());
-                robotEvasiveForce = robotEvasiveForce.add(force);
-            }
-
-            for (Transform bullet : virtualBullets) {
-                Vector2 force = calculateForceVector(bullet.getPosition());
-                bulletEvasiveForce = bulletEvasiveForce.add(force);
-            }
-
-            Vector2 force = Vector2.NULL.addAll(
-                    robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ),
-                    bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ),
-                    wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ),
-                    targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR )
-            );
-
-            double angle = force.getTheta();
-            // There will always be a forcefield.
-            // The forcefield is based on the enemies that it scans in between shots.
-            if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
-                angle = wallSmoothing(angle);
-                setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
-                setAhead(Double.POSITIVE_INFINITY);
-            } else {
-                angle = wallSmoothing(angle);
-                setTurnRightRadians(Utils.normalRelativeAngle(angle+Math.PI-getHeadingRadians()));
-                setAhead(Double.NEGATIVE_INFINITY);
-            }
-
+        for (String enemyRobot : getAliveRobots()) {
+            Transform robotStats = STATISTICS.get(enemyRobot).getLast();
+            Vector2 force = calculateForceVector(robotStats.getPosition());
+            robotEvasiveForce = robotEvasiveForce.add(force);
         }
 
+        for (Transform bullet : virtualBullets) {
+            Vector2 force = calculateForceVector(bullet.getPosition());
+            bulletEvasiveForce = bulletEvasiveForce.add(force);
+        }
+
+        {
+            Vector2 northForce = calculateForceVector(
+                    new Vector2( this.getX(), getBattleFieldHeight() )
+            );
+            Vector2 westForce = calculateForceVector(
+                    new Vector2( getBattleFieldWidth() , getY() )
+            );
+            Vector2 southForce = calculateForceVector(
+                    new Vector2( this.getX(), 0)
+            );
+            Vector2 eastForce = calculateForceVector(
+                    new Vector2( 0, getY() )
+            );
+            wallEvasiveForce = Vector2.NULL.addAll(
+                    northForce, westForce, southForce, eastForce
+            );
+        }
+
+        Vector2 force = Vector2.NULL.addAll(
+                robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ),
+                bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ),
+                wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ),
+                targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR )
+        );
+
+        double angle = force.getTheta();
+        // There will always be a forcefield.
+        // The forcefield is based on the enemies that it scans in between shots.
+        if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
+            angle = wallSmoothing(angle);
+            setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
+            setAhead(Double.POSITIVE_INFINITY);
+        } else {
+            angle = wallSmoothing(angle);
+            setTurnRightRadians(Utils.normalRelativeAngle(angle+Math.PI-getHeadingRadians()));
+            setAhead(Double.NEGATIVE_INFINITY);
+        }
     }
 
     public double wallSmoothing(double angle) {
