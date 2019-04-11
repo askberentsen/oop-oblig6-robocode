@@ -841,13 +841,13 @@ public class ChampignonRobot extends AdvancedRobot {
                     new Vector2( this.getX(), getBattleFieldHeight() )
             );
             Vector2 westForce = calculateForceVector(
-                    new Vector2( getBattleFieldWidth() , getY() )
+                    new Vector2( getBattleFieldWidth() , this.getY() )
             );
             Vector2 southForce = calculateForceVector(
                     new Vector2( this.getX(), 0)
             );
             Vector2 eastForce = calculateForceVector(
-                    new Vector2( 0, getY() )
+                    new Vector2( 0, this.getY() )
             );
             wallEvasiveForce = Vector2.NULL.addAll(
                     northForce, westForce, southForce, eastForce
