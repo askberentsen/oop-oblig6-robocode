@@ -63,6 +63,20 @@ public class Vector2 {
     }
 
     /**
+     * Sums many vectors together.
+     * @param vectors a list of vectors
+     * @return a {@code new Vector2}.
+     */
+    public Vector2 addAll( Vector2... vectors ){
+        double x = 0, y = 0;
+        for ( Vector2 v : vectors ){
+            x += v.getX();
+            y += v.getY();
+        }
+        return new Vector2(x,y);
+    }
+
+    /**
      * Multiplies {@code this} with the scalar {@code scalar}.
      * @param scalar a scalar to multiply with.
      * @return a {@code new Vector2}.
