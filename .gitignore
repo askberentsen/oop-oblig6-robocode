@@ -1,4 +1,5 @@
 *.iws
 src/oblig6/*
 out/*
+javadoc/*
 .idea/workspace.xml

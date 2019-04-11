@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"oop.gruppe4.robocode.robot"},{"l":"oop.gruppe4.robocode.transform"},{"l":"oop.gruppe4.robocode.utility"}]
