@@ -155,6 +155,7 @@ public class GlassCannon extends AdvancedRobot {
     private final double TARGET_ENGAGEMENT_ANGLE    = Math.PI/10.0;
     private final double PREFERED_DISTANCE          = 150.0;
 
+    private boolean tickOption = false;
 
     /**
      * Class initializer.
@@ -178,8 +179,12 @@ public class GlassCannon extends AdvancedRobot {
         setAdjustRadarForRobotTurn( true );
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
-        setBodyColor(Color.MAGENTA);
-        setGunColor(Color.green);
+        setColors(
+                new Color(128,60,50),
+                new Color(114, 33, 35),
+                new Color(0,0,0),
+                new Color(0,0,0),
+                new Color(0,0,0));
     }
 
     /* TICK ROUTINES */
@@ -235,6 +240,7 @@ public class GlassCannon extends AdvancedRobot {
      * @see RadarStatus
      */
     private void update() {
+        tickOption = !tickOption;
 
         this.log();
 
@@ -252,14 +258,17 @@ public class GlassCannon extends AdvancedRobot {
 
             case SCANNING: {
                 updateScanningState();
+                setScanColor(tickOption ? Color.BLUE : Color.CYAN);
                 break;
             }
             case TARGETING: {
                 updateTargetingState();
+                setScanColor(tickOption ? Color.RED : Color.MAGENTA);
                 break;
             }
             case ENGAGING: {
                 updateEngagingState();
+                setScanColor(Color.RED);
                 break;
             }
         }
