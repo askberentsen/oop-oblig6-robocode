@@ -1118,9 +1118,7 @@ public class ChampignonRobot extends AdvancedRobot {
     }
 
     @Override
-    public void onHitRobot(HitRobotEvent event) {
-        // TODO: 10/04/2019
-    }
+    public void onHitRobot(HitRobotEvent e) { STATISTICS.get(e.getName()).addAggression(3); }
 
     @Override
     public void onHitWall( HitWallEvent e ) {
