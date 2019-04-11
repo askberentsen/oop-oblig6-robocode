@@ -68,6 +68,15 @@ public class Vector2 {
      * @return a {@code new Vector2}.
      */
     public Vector2 addAll( Vector2... vectors ){
+        return this.add( sum( vectors ) );
+    }
+
+    /**
+     * Sums many vectors together.
+     * @param vectors a list of vectors
+     * @return a {@code new Vector2}.
+     */
+    public static Vector2 sum( Vector2... vectors ){
         double x = 0, y = 0;
         for ( Vector2 v : vectors ){
             x += v.getX();
