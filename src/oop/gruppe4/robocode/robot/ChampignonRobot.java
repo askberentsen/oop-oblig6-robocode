@@ -814,22 +814,20 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     public void updateMovement() {
         Vector2 robotEvasiveForce       = Vector2.NULL,
-                bulletEvaseiveForce     = Vector2.NULL,
+                bulletEvasiveForce     = Vector2.NULL,
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
 
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
                 Transform robotStats = STATISTICS.get(enemyRobot).getLast();
-                Vector2 relativeCoordinates = robotStats.getPosition().subtract(this.getPosition());
-                double distance = relativeCoordinates.getScalar();
-                Vector2 robotForce = relativeCoordinates.multiply( 1/ (distance * distance));
-                robotEvasiveForce = robotEvasiveForce.add(robotForce);
-
+                Vector2 force = calculateForceVector(robotStats.getPosition());
+                robotEvasiveForce = robotEvasiveForce.add(force);
             }
 
             for (Transform bullet : virtualBullets) {
-
+                Vector2 force = calculateForceVector(bullet.getPosition());
+                bulletEvasiveForce = bulletEvasiveForce.add(force);
             }
 
             double angle = robotEvasiveForce.getTheta() * -1;
@@ -879,6 +877,13 @@ public class ChampignonRobot extends AdvancedRobot {
         }
 
         return angle;
+    }
+
+    private Vector2 calculateForceVector( Vector2 coordinates ){
+        Vector2 relativeCoordinates = coordinates.subtract(this.getPosition());
+        double distance = relativeCoordinates.getScalar();
+        Vector2 force = relativeCoordinates.multiply( 1 / ( distance * distance ) );
+        return force;
     }
 
     /**
