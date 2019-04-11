@@ -814,7 +814,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     public void updateMovement() {
         Vector2 robotEvasiveForce       = Vector2.NULL,
-                bulletEvaseiveForce     = Vector2.NULL,
+                bulletEvasiveForce     = Vector2.NULL,
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
 
@@ -823,22 +823,13 @@ public class ChampignonRobot extends AdvancedRobot {
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
                 Transform robotStats = STATISTICS.get(enemyRobot).getLast();
-                Vector2 relativeCoordinates = robotStats.getPosition().subtract(this.getPosition());
-                double distance = relativeCoordinates.getScalar();
-                Vector2 robotForce = relativeCoordinates.multiply( 1/ (distance * distance));
-                robotEvasiveForce = robotEvasiveForce.add(robotForce);
-
-                double bearing = Utils.normalAbsoluteAngle(Math.atan2(robotStats.getPosition().getX()-this.getX(),robotStats.getPosition().getY()-this.getY()));
-                
-                xForce -= Math.sin(bearing) / (distance * distance);
-                yForce -= Math.cos(bearing) / (distance * distance);
+                Vector2 force = calculateForceVector(robotStats.getPosition());
+                robotEvasiveForce = robotEvasiveForce.add(force);
             }
 
             for (Transform bullet : virtualBullets) {
-                double bearing = Utility.signedAngleDifference(bullet.getNormalizedTrajectory().getTheta(),getHeadingRadians());
-                double distance = bullet.getPosition().distance(this.getPosition());
-                xForce -= Math.sin(bearing) / (distance * distance);
-                yForce -= Math.cos(bearing) / (distance * distance);
+                Vector2 force = calculateForceVector(bullet.getPosition());
+                bulletEvasiveForce = bulletEvasiveForce.add(force);
             }
 
             //double angle = Math.atan2(xForce,yForce);
