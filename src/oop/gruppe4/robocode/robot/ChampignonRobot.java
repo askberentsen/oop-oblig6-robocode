@@ -169,6 +169,7 @@ public class ChampignonRobot extends AdvancedRobot {
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
         setBodyColor(Color.MAGENTA);
+        setGunColor(Color.green);
     }
 
     /* TICK ROUTINES */
@@ -818,8 +819,6 @@ public class ChampignonRobot extends AdvancedRobot {
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
 
-
-        double xForce = 0, yForce = 0;
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
                 Transform robotStats = STATISTICS.get(enemyRobot).getLast();
@@ -831,12 +830,12 @@ public class ChampignonRobot extends AdvancedRobot {
                 Vector2 force = calculateForceVector(bullet.getPosition());
                 bulletEvasiveForce = bulletEvasiveForce.add(force);
             }
-
             Vector2 evasiveForce = robotEvasiveForce.add(bulletEvasiveForce).add(wallEvasiveForce).multiply(-1);
             Vector2 force = evasiveForce.add(targetEngagementForce);
             double angle = force.getTheta();
             // There will always be a forcefield.
             // The forcefield is based on the enemies that it scans in between shots.
+            double angle = robotEvasiveForce.getTheta() * -1;
             if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
                 angle = wallSmoothing(angle);
                 setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
