@@ -23,6 +23,11 @@ public class Vector2 {
     final private double y;
 
     /**
+     * The null-vector.
+     */
+    final public static Vector2 NULL = new Vector2(0,0);
+
+    /**
      * Class constructor.
      * @param x the x coordinate.
      * @param y the y coordinate.

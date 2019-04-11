@@ -813,10 +813,10 @@ public class ChampignonRobot extends AdvancedRobot {
      * TODO: 10/04/2019
      */
     public void updateMovement() {
-        Vector2 robotEvasiveForce = new Vector2(0,0),
-                bulletEvaseiveForce = new Vector2(0,0),
-                wallEvasiveForce = new Vector2(0,0),
-                targetEngagementForce = new Vector2(0,0);
+        Vector2 robotEvasiveForce       = Vector2.NULL,
+                bulletEvaseiveForce     = Vector2.NULL,
+                wallEvasiveForce        = Vector2.NULL,
+                targetEngagementForce   = Vector2.NULL;
 
 
         double xForce = 0, yForce = 0;
