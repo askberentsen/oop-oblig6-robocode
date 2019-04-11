@@ -144,7 +144,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see #update()
      * @see #virtualizeBullets(Transform)
      */
-    private ArrayList<Transform> virtualBullets = new ArrayList<>();
+    private final ArrayList<Transform> virtualBullets = new ArrayList<>();
 
     /**
      * Class initializer.
@@ -264,12 +264,14 @@ public class ChampignonRobot extends AdvancedRobot {
      * @see #virtualizeBullets(Transform)
      */
     private void updateVirtualBullets() {
-        for( Transform virtualBullet : virtualBullets ) {
+        ArrayList<Transform> outOfBoundsBullets = new ArrayList<>();
+        for (Transform virtualBullet : virtualBullets) {
             virtualBullet.update();
-            if( !virtualBullet.getPosition().isContained( 0, 0,getBattleFieldWidth(), getBattleFieldHeight() )){
-                virtualBullets.remove( virtualBullet );
+            if (!virtualBullet.getPosition().isContained(0, 0, getBattleFieldWidth(), getBattleFieldHeight())) {
+                outOfBoundsBullets.add(virtualBullet);
             }
         }
+        virtualBullets.removeAll(outOfBoundsBullets);
     }
 
     /**
