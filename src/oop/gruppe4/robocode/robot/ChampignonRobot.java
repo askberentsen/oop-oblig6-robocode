@@ -146,6 +146,17 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     private final ArrayList<Transform> virtualBullets = new ArrayList<>();
 
+    /* PARAMETERS */
+
+    private final double ROBOT_EVASION_FACTOR       = 10.00;
+    private final double TARGET_ENGAGEMENT_FACTOR   = 0.020;
+    private final double BULLET_EVASION_FACTOR      = 10.00;
+    private final double WALL_EVASION_FACTOR        = 50.00;
+    private final double BULLET_EVASION_ANGLE       = Math.PI/3.0;
+    private final double TARGET_ENGAGEMENT_ANGLE    = Math.PI/10.0;
+    private final double PREFERED_DISTANCE          = 150.0;
+
+
     /**
      * Class initializer.
      * <p>
@@ -820,13 +831,8 @@ public class ChampignonRobot extends AdvancedRobot {
     public void updateMovement() {
         Vector2 robotEvasiveForce       = Vector2.NULL,
                 bulletEvasiveForce      = Vector2.NULL,
-                wallEvasiveForce        = Vector2.NULL,
-                targetEngagementForce   = Vector2.NULL;
-        final double ROBOT_EVASIVE_FACTOR = -10.0,
-                BULLET_EVASIVE_FACTOR = -10.0,
-                WALL_EVASIVE_FACTOR = -50.0,
-                TARGET_ENGAGEMENT_FACTOR = 0.02,
-                PREFERED_DISTANCE = 150.0;
+                targetEngagementForce   = Vector2.NULL,
+                wallEvasiveForce;
 
         for (String enemyRobot : getAliveRobots()) {
             Transform robotStats = STATISTICS.get(enemyRobot).getLast();
@@ -852,7 +858,7 @@ public class ChampignonRobot extends AdvancedRobot {
             Vector2 eastForce = calculateForceVector(
                     new Vector2( 0, this.getY() )
             );
-            wallEvasiveForce = Vector2.NULL.addAll(
+            wallEvasiveForce = Vector2.sum(
                     northForce, westForce, southForce, eastForce
             );
         }
@@ -869,16 +875,12 @@ public class ChampignonRobot extends AdvancedRobot {
             targetEngagementForce = normalVector.multiply(force);
         }
 
-        Vector2 force = Vector2.NULL.addAll(
-                robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ),
-                bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ).rotate(Math.PI/3),
-                wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ),
-                targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR ).rotate(Math.PI/10)
+        Vector2 force = Vector2.sum(
+                bulletEvasiveForce   .multiply( -BULLET_EVASION_FACTOR   ).rotate( BULLET_EVASION_ANGLE    ),
+                targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR ).rotate( TARGET_ENGAGEMENT_ANGLE ),
+                robotEvasiveForce    .multiply( -ROBOT_EVASION_FACTOR    ),
+                wallEvasiveForce     .multiply( -WALL_EVASION_FACTOR     )
         );
-        this.out.println(robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ));
-        this.out.println(bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ));
-        this.out.println(wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ));
-        this.out.println(targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR ));
 
         double angle = force.getTheta();
         // There will always be a forcefield.
