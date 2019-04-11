@@ -820,10 +820,11 @@ public class ChampignonRobot extends AdvancedRobot {
                 bulletEvasiveForce      = Vector2.NULL,
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
-        final double ROBOT_EVASIVE_FACTOR = -1.0,
-                BULLET_EVASIVE_FACTOR = -4.0,
-                WALL_EVASIVE_FACTOR = -10.0,
-                TARGET_ENGAGEMENT_FACTOR = 1.0;
+        final double ROBOT_EVASIVE_FACTOR = -5.0,
+                BULLET_EVASIVE_FACTOR = -10.0,
+                WALL_EVASIVE_FACTOR = -50.0,
+                TARGET_ENGAGEMENT_FACTOR = 1.0,
+                PREFERED_DISTANCE = 200.0;
 
         for (String enemyRobot : getAliveRobots()) {
             Transform robotStats = STATISTICS.get(enemyRobot).getLast();
@@ -852,6 +853,18 @@ public class ChampignonRobot extends AdvancedRobot {
             wallEvasiveForce = Vector2.NULL.addAll(
                     northForce, westForce, southForce, eastForce
             );
+        }
+
+        if( targetName != null ){
+            Vector2 targetPosition = STATISTICS.get(targetName).getLast().getPosition();
+            Vector2 relativePosition = targetPosition.subtract( this.getPosition() );
+            Vector2 normalVector = relativePosition.normalized();
+            double distance = relativePosition.getScalar();
+            double distancaDifference = distance - PREFERED_DISTANCE;
+
+            Vector2 preferedPosition = normalVector.multiply(distancaDifference);
+
+            targetEngagementForce = preferedPosition.normalized().multiply(Math.sqrt(distance/100));
         }
 
         Vector2 force = Vector2.NULL.addAll(
