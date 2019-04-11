@@ -91,6 +91,6 @@ public class Transform {
      * Updates {@code this} position.
      */
     public void update(){
-        position.add( trajectory.multiply(velocity) );
+        position = position.add( trajectory.multiply(velocity) );
     }
 }
