@@ -813,7 +813,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * TODO: 10/04/2019
      */
     public void updateMovement() {
-
+        Vector2 robotEvasiveForce, bulletEvaseiveForce, wallEvasiveForce, targetEngagementForce;
         double xForce = 0, yForce = 0;
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
