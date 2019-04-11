@@ -169,6 +169,7 @@ public class ChampignonRobot extends AdvancedRobot {
         setAdjustGunForRobotTurn  ( true );
         setAdjustRadarForGunTurn  ( true );
         setBodyColor(Color.MAGENTA);
+        setGunColor(Color.green);
     }
 
     /* TICK ROUTINES */
