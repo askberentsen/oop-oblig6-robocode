@@ -835,7 +835,6 @@ public class ChampignonRobot extends AdvancedRobot {
             double angle = force.getTheta();
             // There will always be a forcefield.
             // The forcefield is based on the enemies that it scans in between shots.
-            double angle = robotEvasiveForce.getTheta() * -1;
             if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
                 angle = wallSmoothing(angle);
                 setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
