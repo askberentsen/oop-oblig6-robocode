@@ -352,7 +352,9 @@ public class ChampignonRobot extends AdvancedRobot {
         aimGun();
 
         final double ACCEPTABLE_ACCURACY = Math.PI / 180;
-        if( getGunHeat() == 0 && getGunTurnRemainingRadians() < ACCEPTABLE_ACCURACY ){
+        if( getGunHeat() == 0 &&
+                getGunTurnRemainingRadians() < ACCEPTABLE_ACCURACY &&
+                STATISTICS.get(targetName).getLast().getPosition().distance( this.getPosition() ) < 350 ){
 
             // TODO: 09/04/2019 save the bullet information so we can track which bullet missed which target.
             Bullet bullet = setFireBullet( Math.min( getEnergy(), Rules.MAX_BULLET_POWER ) );
@@ -820,11 +822,11 @@ public class ChampignonRobot extends AdvancedRobot {
                 bulletEvasiveForce      = Vector2.NULL,
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
-        final double ROBOT_EVASIVE_FACTOR = -5.0,
+        final double ROBOT_EVASIVE_FACTOR = -10.0,
                 BULLET_EVASIVE_FACTOR = -10.0,
                 WALL_EVASIVE_FACTOR = -50.0,
-                TARGET_ENGAGEMENT_FACTOR = 1.0,
-                PREFERED_DISTANCE = 200.0;
+                TARGET_ENGAGEMENT_FACTOR = 0.02,
+                PREFERED_DISTANCE = 150.0;
 
         for (String enemyRobot : getAliveRobots()) {
             Transform robotStats = STATISTICS.get(enemyRobot).getLast();
@@ -861,18 +863,22 @@ public class ChampignonRobot extends AdvancedRobot {
             Vector2 normalVector = relativePosition.normalized();
             double distance = relativePosition.getScalar();
             double distancaDifference = distance - PREFERED_DISTANCE;
+            double absForce = Math.sqrt(Math.abs(distancaDifference));
+            double force = distancaDifference > 0 ? absForce : -absForce;
 
-            Vector2 preferedPosition = normalVector.multiply(distancaDifference);
-
-            targetEngagementForce = preferedPosition.normalized().multiply(Math.sqrt(distance/100));
+            targetEngagementForce = normalVector.multiply(force);
         }
 
         Vector2 force = Vector2.NULL.addAll(
                 robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ),
-                bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ),
+                bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ).rotate(Math.PI/3),
                 wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ),
-                targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR )
+                targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR ).rotate(Math.PI/10)
         );
+        this.out.println(robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ));
+        this.out.println(bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ));
+        this.out.println(wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ));
+        this.out.println(targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR ));
 
         double angle = force.getTheta();
         // There will always be a forcefield.
