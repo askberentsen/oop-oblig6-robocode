@@ -823,7 +823,7 @@ public class ChampignonRobot extends AdvancedRobot {
         final double ROBOT_EVASIVE_FACTOR = -1.0,
                 BULLET_EVASIVE_FACTOR = -4.0,
                 WALL_EVASIVE_FACTOR = -1.0,
-                TARGET_ENGAGMENT_FACTOR = 1.0;
+                TARGET_ENGAGEMENT_FACTOR = 1.0;
 
         if(getAliveRobots().size() > 0) {
 
@@ -842,7 +842,7 @@ public class ChampignonRobot extends AdvancedRobot {
                     robotEvasiveForce    .multiply( ROBOT_EVASIVE_FACTOR    ),
                     bulletEvasiveForce   .multiply( BULLET_EVASIVE_FACTOR   ),
                     wallEvasiveForce     .multiply( WALL_EVASIVE_FACTOR     ),
-                    targetEngagementForce.multiply( TARGET_ENGAGMENT_FACTOR )
+                    targetEngagementForce.multiply( TARGET_ENGAGEMENT_FACTOR )
             );
 
             double angle = force.getTheta();
