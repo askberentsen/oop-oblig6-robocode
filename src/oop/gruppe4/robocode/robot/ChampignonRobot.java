@@ -818,11 +818,19 @@ public class ChampignonRobot extends AdvancedRobot {
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
                 RobotStatistics.Statistic robotStats = (STATISTICS.get(enemyRobot)).getLast();
-                double bearing = Utils.normalAbsoluteAngle(Math.atan2(robotStats.getPosition().getX()-this.getX(),robotStats.getPosition().getY()-this.getY()));
+                double bearing = robotStats.getPosition().subtract(this.getPosition()).getTheta();
                 double distance = robotStats.getPosition().distance(this.getPosition());
                 xForce -= Math.sin(bearing) / (distance * distance);
                 yForce -= Math.cos(bearing) / (distance * distance);
             }
+
+            for (Transform bullet : virtualBullets) {
+                double bearing = Utility.signedAngleDifference(bullet.getNormalizedTrajectory().getTheta(),getHeadingRadians());
+                double distance = bullet.getPosition().distance(this.getPosition());
+                xForce -= Math.sin(bearing) / (distance * distance);
+                yForce -= Math.cos(bearing) / (distance * distance);
+            }
+
             double angle = Math.atan2(xForce,yForce);
             // There will always be a forcefield.
             // The forcefield is based on the enemies that it scans in between shots.
