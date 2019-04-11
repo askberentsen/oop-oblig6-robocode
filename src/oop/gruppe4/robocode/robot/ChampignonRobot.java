@@ -818,8 +818,6 @@ public class ChampignonRobot extends AdvancedRobot {
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
 
-
-        double xForce = 0, yForce = 0;
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
                 Transform robotStats = STATISTICS.get(enemyRobot).getLast();
@@ -828,23 +826,13 @@ public class ChampignonRobot extends AdvancedRobot {
                 Vector2 robotForce = relativeCoordinates.multiply( 1/ (distance * distance));
                 robotEvasiveForce = robotEvasiveForce.add(robotForce);
 
-                double bearing = Utils.normalAbsoluteAngle(Math.atan2(robotStats.getPosition().getX()-this.getX(),robotStats.getPosition().getY()-this.getY()));
-                
-                xForce -= Math.sin(bearing) / (distance * distance);
-                yForce -= Math.cos(bearing) / (distance * distance);
             }
 
             for (Transform bullet : virtualBullets) {
-                double bearing = Utility.signedAngleDifference(bullet.getNormalizedTrajectory().getTheta(),getHeadingRadians());
-                double distance = bullet.getPosition().distance(this.getPosition());
-                xForce -= Math.sin(bearing) / (distance * distance);
-                yForce -= Math.cos(bearing) / (distance * distance);
+
             }
 
-            //double angle = Math.atan2(xForce,yForce);
             double angle = robotEvasiveForce.getTheta() * -1;
-            // There will always be a forcefield.
-            // The forcefield is based on the enemies that it scans in between shots.
             if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
                 angle = wallSmoothing(angle);
                 setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
