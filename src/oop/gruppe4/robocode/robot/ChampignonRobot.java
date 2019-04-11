@@ -813,13 +813,22 @@ public class ChampignonRobot extends AdvancedRobot {
      * TODO: 10/04/2019
      */
     public void updateMovement() {
+        Vector2 robotEvasiveForce = new Vector2(0,0),
+                bulletEvaseiveForce = new Vector2(0,0),
+                wallEvasiveForce = new Vector2(0,0),
+                targetEngagementForce = new Vector2(0,0);
+
 
         double xForce = 0, yForce = 0;
         if(getAliveRobots().size() > 0) {
             for (String enemyRobot : getAliveRobots()) {
-                RobotStatistics.Statistic robotStats = (STATISTICS.get(enemyRobot)).getLast();
-                double bearing = robotStats.getPosition().subtract(this.getPosition()).getTheta();
-                double distance = robotStats.getPosition().distance(this.getPosition());
+                Transform robotStats = STATISTICS.get(enemyRobot).getLast();
+                Vector2 relativeCoordinates = robotStats.getPosition().subtract(this.getPosition());
+                double distance = relativeCoordinates.getScalar();
+                Vector2 robotForce = relativeCoordinates.multiply( 1/ (distance * distance));
+
+                double bearing = Utils.normalAbsoluteAngle(Math.atan2(robotStats.getPosition().getX()-this.getX(),robotStats.getPosition().getY()-this.getY()));
+                
                 xForce -= Math.sin(bearing) / (distance * distance);
                 yForce -= Math.cos(bearing) / (distance * distance);
             }
