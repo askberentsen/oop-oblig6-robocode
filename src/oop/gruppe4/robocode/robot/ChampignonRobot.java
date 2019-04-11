@@ -1120,12 +1120,6 @@ public class ChampignonRobot extends AdvancedRobot {
     @Override
     public void onHitRobot(HitRobotEvent e) { STATISTICS.get(e.getName()).addAggression(3); }
 
-    @Override
-    public void onHitWall( HitWallEvent e ) {
-        setAhead(-getDistanceRemaining());
-        // TODO: 09/04/2019
-    }
-
     /**
      * The state of the radar.
      */
