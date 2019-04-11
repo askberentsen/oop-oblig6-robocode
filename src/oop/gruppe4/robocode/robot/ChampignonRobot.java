@@ -826,6 +826,7 @@ public class ChampignonRobot extends AdvancedRobot {
                 Vector2 relativeCoordinates = robotStats.getPosition().subtract(this.getPosition());
                 double distance = relativeCoordinates.getScalar();
                 Vector2 robotForce = relativeCoordinates.multiply( 1/ (distance * distance));
+                robotEvasiveForce = robotEvasiveForce.add(robotForce);
 
                 double bearing = Utils.normalAbsoluteAngle(Math.atan2(robotStats.getPosition().getX()-this.getX(),robotStats.getPosition().getY()-this.getY()));
                 
@@ -840,7 +841,8 @@ public class ChampignonRobot extends AdvancedRobot {
                 yForce -= Math.cos(bearing) / (distance * distance);
             }
 
-            double angle = Math.atan2(xForce,yForce);
+            //double angle = Math.atan2(xForce,yForce);
+            double angle = robotEvasiveForce.getTheta() * -1;
             // There will always be a forcefield.
             // The forcefield is based on the enemies that it scans in between shots.
             if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
