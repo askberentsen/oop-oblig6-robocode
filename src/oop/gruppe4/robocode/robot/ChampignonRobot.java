@@ -894,10 +894,32 @@ public class ChampignonRobot extends AdvancedRobot {
 
     /**
      * Virtualizes bullets so that {@code this} can avoid them.
-     * @param enemy the position, trajectory and velocity of an enemy.
+     * @param robot the position, trajectory and velocity of an enemy.
      */
-    private void virtualizeBullets( Transform enemy ) {
-        // TODO: 08/04/2019
+    private void virtualizeBullets( Transform robot ) {
+        Vector2 robotPosition = robot.getPosition();
+        Transform linearInterceptBullet, directInterceptBullet;
+
+        Vector2 linearInterceptCoordinates = linearIntercept(
+                robotPosition,
+                this.getPosition(),
+                this.getTrajectory()
+        );
+        double bulletForce = 3;
+        double bulletVelocity = 20 - (3 * bulletForce);
+
+        Vector2 linearInterceptTrajectory = linearInterceptCoordinates.subtract( robotPosition ).normalized();
+        Vector2 directInterceptTrajectory = this.getPosition().subtract( robotPosition ).normalized();
+
+        linearInterceptBullet = new Transform(
+                robotPosition, linearInterceptTrajectory, bulletVelocity
+        );
+        directInterceptBullet = new Transform(
+                robotPosition, directInterceptTrajectory, bulletVelocity
+        );
+
+        virtualBullets.add(linearInterceptBullet);
+        virtualBullets.add(directInterceptBullet);
     }
 
     /* STATUS MANAMGEMENT */
