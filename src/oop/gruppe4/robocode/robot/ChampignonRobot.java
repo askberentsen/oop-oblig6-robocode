@@ -814,7 +814,7 @@ public class ChampignonRobot extends AdvancedRobot {
      */
     public void updateMovement() {
         Vector2 robotEvasiveForce       = Vector2.NULL,
-                bulletEvasiveForce     = Vector2.NULL,
+                bulletEvasiveForce      = Vector2.NULL,
                 wallEvasiveForce        = Vector2.NULL,
                 targetEngagementForce   = Vector2.NULL;
 
@@ -832,8 +832,9 @@ public class ChampignonRobot extends AdvancedRobot {
                 bulletEvasiveForce = bulletEvasiveForce.add(force);
             }
 
-            //double angle = Math.atan2(xForce,yForce);
-            double angle = robotEvasiveForce.getTheta() * -1;
+            Vector2 evasiveForce = robotEvasiveForce.add(bulletEvasiveForce).add(wallEvasiveForce).multiply(-1);
+            Vector2 force = evasiveForce.add(targetEngagementForce);
+            double angle = force.getTheta();
             // There will always be a forcefield.
             // The forcefield is based on the enemies that it scans in between shots.
             if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
