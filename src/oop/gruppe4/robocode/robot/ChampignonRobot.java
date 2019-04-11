@@ -865,48 +865,12 @@ public class ChampignonRobot extends AdvancedRobot {
         // There will always be a forcefield.
         // The forcefield is based on the enemies that it scans in between shots.
         if(Math.abs(angle-getHeadingRadians())<Math.PI/2) {
-            angle = wallSmoothing(angle);
             setTurnRightRadians(Utils.normalRelativeAngle(angle-getHeadingRadians()));
             setAhead(Double.POSITIVE_INFINITY);
         } else {
-            angle = wallSmoothing(angle);
             setTurnRightRadians(Utils.normalRelativeAngle(angle+Math.PI-getHeadingRadians()));
             setAhead(Double.NEGATIVE_INFINITY);
         }
-    }
-
-    public double wallSmoothing(double angle) {
-        Rectangle2D.Double battleField = new Rectangle2D.Double(18,18,getBattleFieldWidth()-36,getBattleFieldHeight()-36);
-        double wallStick = 120;
-        angle += (4*Math.PI);
-
-        double testX = this.getX() + (Math.sin(angle)*wallStick);
-        double testY = this.getY() + (Math.cos(angle)*wallStick);
-        double distToWallX = Math.min(this.getX() - 18, getBattleFieldWidth() - this.getX() - 18);
-        double distToWallY = Math.min(this.getY() - 18, getBattleFieldHeight() - this.getY() - 18);
-        double testDistToWallX = Math.min(testX - 18, getBattleFieldWidth() - testX - 18);
-        double testDistToWallY = Math.min(testY - 18, getBattleFieldHeight() - testY - 18);
-
-        int iterations = 0;
-        double adjacent = 0;
-        while (iterations++ < 25 && !battleField.contains(testX,testY)) {
-            if (testDistToWallY < 0 && testDistToWallY < testDistToWallX) {
-                angle = ((int)(angle + (Math.PI/2)) / Math.PI) * (Math.PI/2);
-                adjacent = Math.abs(distToWallY);
-            } else if (testDistToWallX < 0 && testDistToWallX <= testDistToWallY) {
-                angle = ((int)(angle / Math.PI) * Math.PI) + (Math.PI/2);
-                adjacent = Math.abs(distToWallX);
-            }
-
-            angle += Math.abs(Math.acos(adjacent/wallStick)) + 0.005;
-
-            testX = this.getX() + (Math.sin(angle)*wallStick);
-            testY = this.getY() + (Math.cos(angle)*wallStick);
-            testDistToWallX = Math.min(testX - 20, getBattleFieldWidth() - testX - 20);
-            testDistToWallY = Math.min(testY - 20, getBattleFieldHeight() - testY - 20);
-        }
-
-        return angle;
     }
 
     private Vector2 calculateForceVector( Vector2 coordinates ){
