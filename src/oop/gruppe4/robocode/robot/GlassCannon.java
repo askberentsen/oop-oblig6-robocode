@@ -8,9 +8,7 @@ import robocode.*;
 import robocode.util.Utils;
 
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 /* WARNING: BIG CODE-BLOCKS. SORRY!
@@ -21,14 +19,14 @@ import java.util.function.Predicate;
  * @author Ask Hetland Berentsen
  * @author Magnus Måbø Nystad
  */
-public class ChampignonRobot extends AdvancedRobot {
+public class GlassCannon extends AdvancedRobot {
 
     /* FIELDS */
 
     /**
      * The status of the scanner.
      * <p>
-     *     {@code ChampignonRobot} uses three different states to divide its tasks into three phases.
+     *     {@code GlassCannon} uses three different states to divide its tasks into three phases.
      *     a phase will decide what actions and routines to perform and how to react to different inputs.
      * </p>
      * <p>
@@ -53,8 +51,8 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * The name of the the target.
      * <p>
-     *     {@code ChampignonRobot} uses target discrimination to select a robot to target.
-     *     When logging all the robots, {@code ChampignonRobot} will select a target based on
+     *     {@code GlassCannon} uses target discrimination to select a robot to target.
+     *     When logging all the robots, {@code GlassCannon} will select a target based on
      *     some criteria and set the targeted robot as {@code targetName}.
      * </p>
      * <p>
@@ -68,9 +66,9 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * A counter for how many ticks the target was not found.
      * <p>
-     *     When {@code ChampignonRobot} is in the {@link RadarStatus#ENGAGING} phase,
+     *     When {@code GlassCannon} is in the {@link RadarStatus#ENGAGING} phase,
      *     it will keep track of how many ticks have passed not having scanned {@link #targetName}.
-     *     If {@code targetName} was not found for a certain amount of ticks, {@code ChampignonRobot}
+     *     If {@code targetName} was not found for a certain amount of ticks, {@code GlassCannon}
      *     will disengage and pick a new target.
      * </p>
      * @see #targetName
@@ -114,7 +112,7 @@ public class ChampignonRobot extends AdvancedRobot {
      * A set of {@code Robot} names scanned during the {@link RadarStatus#SCANNING} phase.
      * <p>
      *     The set of names is filled up during the scanning phase, which lasts several ticks.
-     *     After all the radar has completed its sweep, {@code ChampignonRobot} will
+     *     After all the radar has completed its sweep, {@code GlassCannon} will
      *     update the statistics off the robots, based on whether they were scanned or not
      *     during that specific sweep.
      * </p>
@@ -136,7 +134,7 @@ public class ChampignonRobot extends AdvancedRobot {
     /**
      * A list of virtual bullets.
      * <p>
-     *     When {@code ChampignonRobot} sees a discrepancy in the energy statistic of a {@code Robot},
+     *     When {@code GlassCannon} sees a discrepancy in the energy statistic of a {@code Robot},
      *     it can assume the robot has fired a bullet. When this happens, some virtual bullets are generated
      *     based on the transform history of {@code this}. We can assume the {@code Robot} will try to either use
      *     direct, linear or circular interception, and as such, {@code this} can avoid the positions of
@@ -383,7 +381,7 @@ public class ChampignonRobot extends AdvancedRobot {
             locale = "\n\n\n\n" +
                     lineSeparator +
                     "|                      |\n" +
-                    "| ChampignonRobot      |\n" +
+                    "| GlassCannon      |\n" +
                     lineSeparator +
                     "| STATUS               : %s\n" +
                     "| position             : %s\n" +

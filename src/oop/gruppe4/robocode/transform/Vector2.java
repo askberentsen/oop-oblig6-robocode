@@ -1,6 +1,5 @@
 package oop.gruppe4.robocode.transform;
 
-import oop.gruppe4.robocode.utility.Utility;
 import org.jetbrains.annotations.NotNull;
 
 import static java.lang.Math.*;
