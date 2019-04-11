@@ -891,6 +891,13 @@ public class ChampignonRobot extends AdvancedRobot {
         return angle;
     }
 
+    private Vector2 calculateForceVector( Vector2 coordinates ){
+        Vector2 relativeCoordinates = coordinates.subtract(this.getPosition());
+        double distance = relativeCoordinates.getScalar();
+        Vector2 force = relativeCoordinates.multiply( 1 / ( distance * distance ) );
+        return force;
+    }
+
     /**
      * Virtualizes bullets so that {@code this} can avoid them.
      * @param enemy the position, trajectory and velocity of an enemy.
